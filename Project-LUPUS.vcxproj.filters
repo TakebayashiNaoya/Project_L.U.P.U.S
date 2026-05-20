@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="external">
+      <UniqueIdentifier>{7a0f2c15-944b-4422-97e2-b034d06a886f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source">
+      <UniqueIdentifier>{156c44db-1d8f-473a-8fa5-cd189d633b9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\App">
+      <UniqueIdentifier>{3ede486a-3999-41bc-b3c6-8672b1dcf268}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Profile">
+      <UniqueIdentifier>{5ae37517-5696-4627-a5cb-7631d95aace7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\StateMachine">
+      <UniqueIdentifier>{5299a1a6-3989-4423-ac23-f8626f695a0d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Monitor">
+      <UniqueIdentifier>{a9ec46aa-3fed-494d-8647-809be0c64d0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Audio">
+      <UniqueIdentifier>{4a700db3-ce80-4be0-b30e-6b44bb75f0e4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="external\CRC32.h">
+      <Filter>external</Filter>
+    </ClInclude>
+    <ClInclude Include="external\json.hpp">
+      <Filter>external</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\App\LupusApp.h">
+      <Filter>Source\App</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Audio\AudioPipeline.h">
+      <Filter>Source\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Audio\IAudioPipeline.h">
+      <Filter>Source\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Monitor\IMonitor.h">
+      <Filter>Source\Monitor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Monitor\MonitorThread.h">
+      <Filter>Source\Monitor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Profile\ProfileLoader.h">
+      <Filter>Source\Profile</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StateMachine\IState.h">
+      <Filter>Source\StateMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StateMachine\StateMachine.h">
+      <Filter>Source\StateMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StateMachine\StateStandby.h">
+      <Filter>Source\StateMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StateMachine\StateTaskCompleted.h">
+      <Filter>Source\StateMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\StateMachine\StateTaskFocus.h">
+      <Filter>Source\StateMachine</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\App\LupusApp.cpp">
+      <Filter>Source\App</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Audio\AudioPipeline.cpp">
+      <Filter>Source\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Monitor\MonitorThread.cpp">
+      <Filter>Source\Monitor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Profile\ProfileLoader.cpp">
+      <Filter>Source\Profile</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\StateMachine\StateMachine.cpp">
+      <Filter>Source\StateMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\StateMachine\StateStandby.cpp">
+      <Filter>Source\StateMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\StateMachine\StateTaskCompleted.cpp">
+      <Filter>Source\StateMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\StateMachine\StateTaskFocus.cpp">
+      <Filter>Source\StateMachine</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+</Project>
