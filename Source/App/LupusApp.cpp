@@ -7,6 +7,7 @@
 #include "Source/Profile/ProfileLoader.h"
 #include "Source/StateMachine/StateMachine.h"
 #include "Source/Monitor/MonitorThread.h"
+#include "Source/Monitor/NetworkMonitor/NetworkMonitor.h"
 #include "Source/Audio/AudioPipeline.h"
 
 
@@ -44,6 +45,9 @@ namespace app
 		const int intervalMs = profile.value("monitor_interval_ms", 1000);
 		m_monitorThread = std::make_unique<MonitorThread>();
 		m_monitorThread->Init(*m_stateMachine, intervalMs);
+
+		// 監視モジュールの登録
+		m_monitorThread->AddMonitor(std::make_unique<NetworkMonitor>(profile));
 
 		// 音声パイプラインの初期化
 		m_audioPipeline = std::make_unique<AudioPipeline>();
