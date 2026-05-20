@@ -1,0 +1,14 @@
+{
+  "monitor_interval_ms": 5000,
+
+  "code_review_directories": [
+    "Source",
+    "Include"
+  ],
+
+  "document_review_directories": [
+    "docs"
+  ],
+
+  "document_temp_directory": "private/temp"
+}
