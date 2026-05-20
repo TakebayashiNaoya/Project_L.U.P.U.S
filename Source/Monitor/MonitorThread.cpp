@@ -45,6 +45,9 @@ namespace app
 
 	void MonitorThread::Stop()
 	{
+		// 既に停止済みの場合は何もしない
+		if (!m_isRunning) return;
+
 		m_isRunning = false;
 		if (m_thread.joinable())
 		{

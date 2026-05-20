@@ -1,6 +1,6 @@
 ﻿/**
  * @file AudioPipeline.cpp
- * @brief 音声パイプラインクラス実装（スケルトン）
+ * @brief 音声パイプラインクラス実装(スケルトン)
  */
 #include "stdafx.h"
 #include "Source/Audio/AudioPipeline.h"
@@ -30,8 +30,10 @@ namespace app
 
 	void AudioPipeline::Stop()
 	{
-		m_isRunning = false;
+		// 既に停止済みの場合は何もしない
+		if (!m_isRunning) return;
 
+		m_isRunning = false;
 		if (m_thread.joinable())
 		{
 			m_thread.join();
