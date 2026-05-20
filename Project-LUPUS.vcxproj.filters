@@ -22,6 +22,12 @@
     <Filter Include="Source\Audio">
       <UniqueIdentifier>{4a700db3-ce80-4be0-b30e-6b44bb75f0e4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Monitor\NetworkMonitor">
+      <UniqueIdentifier>{bc227cbd-c6d2-4156-be3b-fa416a9f5c2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Monitor\NotionMonitor">
+      <UniqueIdentifier>{14a6ffe5-a1da-4ce1-9dc2-4d0ab21052be}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="external\CRC32.h">
@@ -64,6 +70,15 @@
       <Filter>Source\StateMachine</Filter>
     </ClInclude>
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="Source\Monitor\NetworkMonitor\NetworkMonitor.h">
+      <Filter>Source\Monitor\NetworkMonitor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Monitor\SystemContext.h">
+      <Filter>Source\Monitor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Monitor\NotionMonitor\NotionMonitor.h">
+      <Filter>Source\Monitor\NotionMonitor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\App\LupusApp.cpp">
@@ -92,5 +107,11 @@
     </ClCompile>
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source\Monitor\NetworkMonitor\NetworkMonitor.cpp">
+      <Filter>Source\Monitor\NetworkMonitor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Monitor\NotionMonitor\NotionMonitor.cpp">
+      <Filter>Source\Monitor\NotionMonitor</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

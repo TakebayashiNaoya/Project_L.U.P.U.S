@@ -3,8 +3,7 @@
  * @brief 集中状態クラス
  */
 #pragma once
-#include "stdafx.h"
-#include "IState.h"
+#include "Source/StateMachine/IState.h"
 
 
 namespace app

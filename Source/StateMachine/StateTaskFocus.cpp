@@ -12,9 +12,7 @@ namespace app
 
 	void StateTaskFocus::OnEnter(const nlohmann::json& profile)
 	{
-		const std::string prompt = profile.value(
-			nlohmann::json::json_pointer("/states/TaskFocus"), "");
-		std::cout << "[StateTaskFocus] OnEnter | プロンプト: " << prompt << std::endl;
+		std::cout << "[StateTaskFocus] OnEnter" << std::endl;
 	}
 
 

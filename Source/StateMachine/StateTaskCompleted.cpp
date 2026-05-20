@@ -12,9 +12,7 @@ namespace app
 
 	void StateTaskCompleted::OnEnter(const nlohmann::json& profile)
 	{
-		const std::string prompt = profile.value(
-			nlohmann::json::json_pointer("/states/TaskCompleted"), "");
-		std::cout << "[StateTaskCompleted] OnEnter | プロンプト: " << prompt << std::endl;
+		std::cout << "[StateTaskCompleted] OnEnter" << std::endl;
 	}
 
 

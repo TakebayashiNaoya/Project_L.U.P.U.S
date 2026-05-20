@@ -40,6 +40,13 @@ namespace app
 	}
 
 
+	void StateMachine::Evaluate(const SystemContext& context)
+	{
+		const std::string nextStateName = ResolveStateName(context);
+		Transition(nextStateName);
+	}
+
+
 	void StateMachine::Transition(const std::string& stateName)
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
@@ -94,6 +101,25 @@ namespace app
 		default:
 			return nullptr;
 		}
+	}
+
+
+	std::string StateMachine::ResolveStateName(const SystemContext& context) const
+	{
+		// 在宅でない場合は Standby に遷移する
+		if (!context.m_isAtHome)
+		{
+			return "Standby";
+		}
+
+		// 在宅かつ未完了タスクあり、または姿勢悪化の場合は TaskFocus に遷移する
+		if (context.m_hasPendingTasks || context.m_isSlouching)
+		{
+			return "TaskFocus";
+		}
+
+		// 在宅かつ全タスク完了・姿勢問題なしの場合は TaskCompleted に遷移する
+		return "TaskCompleted";
 	}
 
 

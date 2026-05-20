@@ -3,7 +3,7 @@
  * @brief 監視モジュールのインターフェース
  */
 #pragma once
-#include "stdafx.h"
+#include "Source/Monitor/SystemContext.h"
 
 
 namespace app
@@ -20,16 +20,24 @@ namespace app
 		virtual ~IMonitor() = default;
 
 		/**
-		 * @brief 監視を1回実行し、遷移すべき状態名を返す
-		 * @return 遷移先の状態名。遷移不要の場合は空文字列を返す
+		 * @brief 監視を1回実行し、結果を SystemContext に書き込む
+		 * @param context 更新対象の共有コンテキスト
 		 */
-		virtual std::string Observe() = 0;
+		virtual void Observe(SystemContext& context) = 0;
 
 		/**
 		 * @brief 監視モジュール名を返す
 		 * @return モジュール名文字列
 		 */
 		virtual const char* GetName() const = 0;
+
+		/**
+		 * @brief ネットワーク接続時のみ動作するモジュールかどうかを返す
+		 * @details true を返すモジュールは、context.m_isConnected が false の場合に
+		 *          MonitorThread からの Observe() 呼び出しがスキップされる
+		 * @return ネットワーク接続時のみ動作する場合 true。デフォルトは false
+		 */
+		virtual bool RequiresNetwork() const { return false; }
 	};
 
 

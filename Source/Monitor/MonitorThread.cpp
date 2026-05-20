@@ -58,14 +58,26 @@ namespace app
 	{
 		while (m_isRunning)
 		{
+			// パス1: RequiresNetwork() == false のモニターを先に実行し、
+			//        m_context.m_isConnected を確定させる
 			for (auto& monitor : m_monitors)
 			{
-				const std::string nextState = monitor->Observe();
-				if (!nextState.empty())
-				{
-					m_stateMachine->Transition(nextState);
-				}
+				if (monitor->RequiresNetwork()) continue;
+				monitor->Observe(m_context);
 			}
+
+			// パス2: RequiresNetwork() == true のモニターを実行する。
+			//        パス1で m_isConnected が確定しているためスキップ判定が正確になる
+			for (auto& monitor : m_monitors)
+			{
+				if (!monitor->RequiresNetwork()) continue;
+				if (!m_context.m_isConnected) continue;
+				monitor->Observe(m_context);
+			}
+
+			// 全モニターの観測結果をもとに StateMachine に遷移判断を委ねる
+			m_stateMachine->Evaluate(m_context);
+
 			std::this_thread::sleep_for(m_interval);
 		}
 	}
