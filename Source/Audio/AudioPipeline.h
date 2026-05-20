@@ -3,7 +3,10 @@
  * @brief 音声パイプラインクラス（スケルトン）
  */
 #pragma once
-#include "stdafx.h"
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <string>
 #include "Source/Audio/IAudioPipeline.h"
 
 

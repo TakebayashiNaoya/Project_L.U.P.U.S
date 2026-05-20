@@ -3,7 +3,8 @@
  * @brief アプリケーション統括クラス
  */
 #pragma once
-#include "stdafx.h"
+#include <memory>
+#include <atomic>
 
 
 namespace app
@@ -48,7 +49,7 @@ namespace app
 		std::unique_ptr<MonitorThread> m_monitorThread;
 		/** 音声パイプラインクラス */
 		std::unique_ptr<AudioPipeline> m_audioPipeline;
-		/**< アプリケーションの実行状態 */
+		/** アプリケーションの実行状態 */
 		std::atomic<bool> m_isRunning{ false };
 	};
 

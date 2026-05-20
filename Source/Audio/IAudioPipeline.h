@@ -3,7 +3,7 @@
  * @brief 音声パイプラインのインターフェース
  */
 #pragma once
-#include "stdafx.h"
+#include <string>
 
 
 namespace app
@@ -11,8 +11,7 @@ namespace app
 
 
 	/**
-	 * @brief VAD + Whisper を用いた音声認識パイプラインのインターフェース
-	 * @details フェーズ2以降で実装する。フェーズ1ではスケルトンのみ。
+	 * @brief 音声パイプラインが実装すべきインターフェース
 	 */
 	class IAudioPipeline
 	{

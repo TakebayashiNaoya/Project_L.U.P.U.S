@@ -3,7 +3,7 @@
  * @brief ステートマシンの状態インターフェース
  */
 #pragma once
-#include "stdafx.h"
+#include "external/json.hpp"
 
 
 namespace app

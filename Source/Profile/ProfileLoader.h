@@ -3,7 +3,9 @@
  * @brief システムプロファイルの読み込みクラス
  */
 #pragma once
-#include "stdafx.h"
+#include <string>
+#include <filesystem>
+#include "external/json.hpp"
 
 
 namespace app
