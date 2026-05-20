@@ -13,6 +13,7 @@
 #include <functional>
 #include <filesystem>
 #include <iostream>
+#include <chrono>
 
 // 外部ライブラリ
 #include "external/json.hpp"

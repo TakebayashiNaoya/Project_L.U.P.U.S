@@ -15,7 +15,9 @@ namespace app
 
 
 	MonitorThread::~MonitorThread()
-	{}
+	{
+		Stop();
+	}
 
 
 	void MonitorThread::Init(StateMachine& stateMachine, int intervalMs)

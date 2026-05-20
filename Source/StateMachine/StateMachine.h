@@ -44,7 +44,7 @@ namespace app
 		 * @brief 現在の状態名を返す
 		 * @return 状態名文字列
 		 */
-		const char* GetCurrentStateName() const;
+		std::string GetCurrentStateName() const;
 
 
 	private:

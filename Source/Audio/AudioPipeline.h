@@ -18,6 +18,9 @@ namespace app
 	class AudioPipeline : public IAudioPipeline
 	{
 	public:
+		AudioPipeline();
+		~AudioPipeline();
+
 		/** @brief 音声パイプラインを開始する */
 		void Start() override;
 		/** @brief 音声パイプラインを停止する */

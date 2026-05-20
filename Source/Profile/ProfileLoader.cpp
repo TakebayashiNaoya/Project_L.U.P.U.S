@@ -55,6 +55,8 @@ namespace app
 		catch (const nlohmann::json::parse_error& e)
 		{
 			std::cerr << "[ProfileLoader] JSONパースエラー: " << e.what() << std::endl;
+			m_isLoaded = false;
+			m_profile.clear();
 			return false;
 		}
 

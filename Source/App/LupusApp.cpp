@@ -17,7 +17,9 @@ namespace app
 
 
 	LupusApp::~LupusApp()
-	{}
+	{
+		Shutdown();
+	}
 
 
 	bool LupusApp::Init()
@@ -77,6 +79,9 @@ namespace app
 
 	void LupusApp::Shutdown()
 	{
+		// 多重呼び出しを防ぐ
+		if (!m_isRunning) return;
+
 		std::cout << "[LupusApp] シャットダウンを開始します" << std::endl;
 
 		// アプリケーションの実行状態を false に設定する

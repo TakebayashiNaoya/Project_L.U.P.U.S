@@ -8,6 +8,14 @@
 
 namespace app
 {
+	AudioPipeline::AudioPipeline()
+	{}
+
+
+	AudioPipeline::~AudioPipeline()
+	{
+		Stop();
+	}
 
 
 	void AudioPipeline::Start()

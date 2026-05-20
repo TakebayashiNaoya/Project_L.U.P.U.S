@@ -50,30 +50,32 @@ namespace app
 			return;
 		}
 
+		// 遷移先が有効でなければ弾く
+		auto nextState = CreateState(stateName);
+		if (!nextState)
+		{
+			std::cerr << "[StateMachine] 未知の状態名: " << stateName << std::endl;
+			return;
+		}
+
 		if (m_currentState)
 		{
 			m_currentState->OnExit();
 		}
 
-		m_currentState = CreateState(stateName);
-		if (m_currentState)
-		{
-			std::cout << "[StateMachine] 状態遷移: " << stateName << std::endl;
-			m_currentState->OnEnter(m_profile);
-		}
-		else
-		{
-			std::cerr << "[StateMachine] 未知の状態名: " << stateName << std::endl;
-		}
+		m_currentState = std::move(nextState);
+		std::cout << "[StateMachine] 状態遷移: " << stateName << std::endl;
+		m_currentState->OnEnter(m_profile);
 	}
 
 
-	const char* StateMachine::GetCurrentStateName() const
+	std::string StateMachine::GetCurrentStateName() const
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
 		if (m_currentState)
 		{
-			return m_currentState->GetName();
+			// GetName() の結果を std::string にコピーしてからロックを解放する
+			return std::string(m_currentState->GetName());
 		}
 		return "None";
 	}
