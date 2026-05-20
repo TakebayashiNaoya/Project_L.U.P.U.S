@@ -58,14 +58,20 @@ namespace app
 	{
 		while (m_isRunning)
 		{
+			// パス1: RequiresNetwork() == false のモニターを先に実行し、
+			//        m_context.m_isConnected を確定させる
 			for (auto& monitor : m_monitors)
 			{
-				// RequiresNetwork() が true のモニターは、ネットワーク未接続時はスキップする
-				if (monitor->RequiresNetwork() && !m_context.m_isConnected)
-				{
-					continue;
-				}
+				if (monitor->RequiresNetwork()) continue;
+				monitor->Observe(m_context);
+			}
 
+			// パス2: RequiresNetwork() == true のモニターを実行する。
+			//        パス1で m_isConnected が確定しているためスキップ判定が正確になる
+			for (auto& monitor : m_monitors)
+			{
+				if (!monitor->RequiresNetwork()) continue;
+				if (!m_context.m_isConnected) continue;
 				monitor->Observe(m_context);
 			}
 

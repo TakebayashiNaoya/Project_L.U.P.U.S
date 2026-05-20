@@ -40,6 +40,7 @@ namespace app
 		{
 			if (!DiscoverDatabases())
 			{
+				// 取得失敗時は次回再試行するため m_isDiscovered は false のまま
 				return;
 			}
 		}
@@ -85,45 +86,66 @@ namespace app
 
 	bool NotionMonitor::DiscoverDatabases()
 	{
-		const std::string body = "{\"filter\":{\"value\":\"database\",\"property\":\"object\"}}";
-		const std::string response = SendRequest("POST", "/v1/search", body);
+		m_databaseIds.clear();
 
-		if (response.empty())
+		std::string cursor;
+		do
 		{
-			std::cerr << "[NotionMonitor] DB の自動検出に失敗しました" << std::endl;
-			return false;
-		}
-
-		try
-		{
-			const nlohmann::json parsed = nlohmann::json::parse(response);
-			if (!parsed.contains("results") || !parsed["results"].is_array())
+			// ページネーション対応: next_cursor がある場合はリクエストボディに含める
+			std::string body = "{\"filter\":{\"value\":\"database\",\"property\":\"object\"}";
+			if (!cursor.empty())
 			{
-				std::cerr << "[NotionMonitor] /search のレスポンス形式が不正です" << std::endl;
+				body = "{\"filter\":{\"value\":\"database\",\"property\":\"object\"},\"start_cursor\":\"" + cursor + "\"";
+			}
+			body += "}";
+
+			const std::string response = SendRequest("POST", "/v1/search", body);
+			if (response.empty())
+			{
+				std::cerr << "[NotionMonitor] DB の自動検出に失敗しました" << std::endl;
 				return false;
 			}
 
-			m_databaseIds.clear();
-			for (const auto& db : parsed["results"])
+			try
 			{
-				if (!db.contains("id") || !db["id"].is_string()) continue;
+				const nlohmann::json parsed = nlohmann::json::parse(response);
+				if (!parsed.contains("results") || !parsed["results"].is_array())
+				{
+					std::cerr << "[NotionMonitor] /search のレスポンス形式が不正です" << std::endl;
+					return false;
+				}
 
-				const std::string dbId = db["id"].get<std::string>();
-				m_databaseIds.push_back(dbId);
+				for (const auto& db : parsed["results"])
+				{
+					if (!db.contains("id") || !db["id"].is_string()) continue;
 
-				// 各 DB のステータスプロパティのスキーマを取得する
-				FetchDatabaseSchema(dbId);
+					const std::string dbId = db["id"].get<std::string>();
+					m_databaseIds.push_back(dbId);
+
+					// 各 DB のステータスプロパティのスキーマを取得する
+					FetchDatabaseSchema(dbId);
+				}
+
+				// 次ページがあれば cursor を更新して継続する
+				cursor.clear();
+				if (parsed.value("has_more", false) && parsed.contains("next_cursor") && !parsed["next_cursor"].is_null())
+				{
+					cursor = parsed["next_cursor"].get<std::string>();
+				}
 			}
+			catch (const nlohmann::json::exception& e)
+			{
+				std::cerr << "[NotionMonitor] /search レスポンスのパースに失敗しました。" << e.what() << std::endl;
+				return false;
+			}
+		} while (!cursor.empty());
 
-			m_isDiscovered = true;
-			std::cout << "[NotionMonitor] DB を " << m_databaseIds.size() << " 件検出しました" << std::endl;
-			return !m_databaseIds.empty();
-		}
-		catch (const nlohmann::json::exception& e)
-		{
-			std::cerr << "[NotionMonitor] /search レスポンスのパースに失敗しました。" << e.what() << std::endl;
-			return false;
-		}
+		// 1件以上検出できた場合のみ完了フラグを立てる
+		const bool hasDiscoveredDatabases = !m_databaseIds.empty();
+		m_isDiscovered = hasDiscoveredDatabases;
+
+		std::cout << "[NotionMonitor] DB を " << m_databaseIds.size() << " 件検出しました" << std::endl;
+		return hasDiscoveredDatabases;
 	}
 
 
@@ -176,28 +198,47 @@ namespace app
 	std::vector<NotionTask> NotionMonitor::FetchPendingTasks(const std::string& databaseId) const
 	{
 		std::vector<NotionTask> tasks;
-
 		const std::string path = "/v1/databases/" + databaseId + "/query";
-		const std::string response = SendRequest("POST", path, "{}");
-		if (response.empty()) return tasks;
 
-		try
+		std::string cursor;
+		do
 		{
-			const nlohmann::json parsed = nlohmann::json::parse(response);
-			if (!parsed.contains("results") || !parsed["results"].is_array()) return tasks;
-
-			for (const auto& page : parsed["results"])
+			// ページネーション対応: next_cursor がある場合はリクエストボディに含める
+			std::string body = "{}";
+			if (!cursor.empty())
 			{
-				if (IsPageIncomplete(page, databaseId))
+				body = "{\"start_cursor\":\"" + cursor + "\"}";
+			}
+
+			const std::string response = SendRequest("POST", path, body);
+			if (response.empty()) break;
+
+			try
+			{
+				const nlohmann::json parsed = nlohmann::json::parse(response);
+				if (!parsed.contains("results") || !parsed["results"].is_array()) break;
+
+				for (const auto& page : parsed["results"])
 				{
-					tasks.push_back(ParseTask(page, databaseId));
+					if (IsPageIncomplete(page, databaseId))
+					{
+						tasks.push_back(ParseTask(page, databaseId));
+					}
+				}
+
+				// 次ページがあれば cursor を更新して継続する
+				cursor.clear();
+				if (parsed.value("has_more", false) && parsed.contains("next_cursor") && !parsed["next_cursor"].is_null())
+				{
+					cursor = parsed["next_cursor"].get<std::string>();
 				}
 			}
-		}
-		catch (const nlohmann::json::exception& e)
-		{
-			std::cerr << "[NotionMonitor] DB クエリのパースに失敗しました。" << e.what() << std::endl;
-		}
+			catch (const nlohmann::json::exception& e)
+			{
+				std::cerr << "[NotionMonitor] DB クエリのパースに失敗しました。" << e.what() << std::endl;
+				break;
+			}
+		} while (!cursor.empty());
 
 		return tasks;
 	}
@@ -232,7 +273,7 @@ namespace app
 				}
 			}
 
-			// 担当者: multi_select 型（担当者プロパティの型に合わせる）
+			// 担当者: multi_select 型
 			else if (type == "multi_select" && prop.contains("multi_select") && prop["multi_select"].is_array())
 			{
 				for (const auto& item : prop["multi_select"])
@@ -256,11 +297,10 @@ namespace app
 				}
 			}
 
-			// 締め切り日: date 型
+			// 締め切り日: date 型（end があれば締め切り日、なければ start を使う）
 			else if (type == "date" && prop.contains("date") && !prop["date"].is_null())
 			{
 				const auto& date = prop["date"];
-				// end があれば締め切り日、なければ start を使う
 				if (date.contains("end") && !date["end"].is_null())
 				{
 					task.m_dueDate = date["end"].get<std::string>();
@@ -280,7 +320,7 @@ namespace app
 					task.m_status = statusObj["name"].get<std::string>();
 				}
 
-				// option_id から group 名を逆引きする
+				// option_id から Complete グループかどうかを判定してグループ名を設定する
 				if (statusObj.contains("id") && statusObj["id"].is_string())
 				{
 					const std::string optionId = statusObj["id"].get<std::string>();
@@ -291,8 +331,6 @@ namespace app
 					}
 					else
 					{
-						// Complete でなければ To-do か In progress
-						// 詳細なグループ分けは FetchDatabaseSchema で拡張可能
 						task.m_group = "Incomplete";
 					}
 				}
@@ -393,23 +431,33 @@ namespace app
 			return response;
 		}
 
-		WinHttpAddRequestHeaders(
-			hRequest,
-			authHeader.c_str(),
-			static_cast<DWORD>(authHeader.size()),
-			WINHTTP_ADDREQ_FLAG_ADD);
+		// ヘッダーを追加する（失敗時はログして早期 return する）
+		if (!WinHttpAddRequestHeaders(hRequest, authHeader.c_str(), static_cast<DWORD>(authHeader.size()), WINHTTP_ADDREQ_FLAG_ADD))
+		{
+			std::cerr << "[NotionMonitor] Authorization ヘッダーの追加に失敗しました。エラーコード: " << GetLastError() << std::endl;
+			WinHttpCloseHandle(hRequest);
+			WinHttpCloseHandle(hConnect);
+			WinHttpCloseHandle(hSession);
+			return response;
+		}
 
-		WinHttpAddRequestHeaders(
-			hRequest,
-			L"Notion-Version: 2022-06-28",
-			static_cast<DWORD>(wcslen(L"Notion-Version: 2022-06-28")),
-			WINHTTP_ADDREQ_FLAG_ADD);
+		if (!WinHttpAddRequestHeaders(hRequest, L"Notion-Version: 2022-06-28", static_cast<DWORD>(wcslen(L"Notion-Version: 2022-06-28")), WINHTTP_ADDREQ_FLAG_ADD))
+		{
+			std::cerr << "[NotionMonitor] Notion-Version ヘッダーの追加に失敗しました。エラーコード: " << GetLastError() << std::endl;
+			WinHttpCloseHandle(hRequest);
+			WinHttpCloseHandle(hConnect);
+			WinHttpCloseHandle(hSession);
+			return response;
+		}
 
-		WinHttpAddRequestHeaders(
-			hRequest,
-			L"Content-Type: application/json",
-			static_cast<DWORD>(wcslen(L"Content-Type: application/json")),
-			WINHTTP_ADDREQ_FLAG_ADD);
+		if (!WinHttpAddRequestHeaders(hRequest, L"Content-Type: application/json", static_cast<DWORD>(wcslen(L"Content-Type: application/json")), WINHTTP_ADDREQ_FLAG_ADD))
+		{
+			std::cerr << "[NotionMonitor] Content-Type ヘッダーの追加に失敗しました。エラーコード: " << GetLastError() << std::endl;
+			WinHttpCloseHandle(hRequest);
+			WinHttpCloseHandle(hConnect);
+			WinHttpCloseHandle(hSession);
+			return response;
+		}
 
 		// GET の場合はボディなしで送信する
 		const BOOL isSent = WinHttpSendRequest(
@@ -430,6 +478,7 @@ namespace app
 			return response;
 		}
 
+		// レスポンスボディを読み込む
 		DWORD dwSize = 0;
 		do
 		{
