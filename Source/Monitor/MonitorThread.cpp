@@ -60,12 +60,18 @@ namespace app
 		{
 			for (auto& monitor : m_monitors)
 			{
-				const std::string nextState = monitor->Observe();
-				if (!nextState.empty())
+				// RequiresNetwork() が true のモニターは、ネットワーク未接続時はスキップする
+				if (monitor->RequiresNetwork() && !m_context.m_isConnected)
 				{
-					m_stateMachine->Transition(nextState);
+					continue;
 				}
+
+				monitor->Observe(m_context);
 			}
+
+			// 全モニターの観測結果をもとに StateMachine に遷移判断を委ねる
+			m_stateMachine->Evaluate(m_context);
+
 			std::this_thread::sleep_for(m_interval);
 		}
 	}

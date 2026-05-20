@@ -8,6 +8,7 @@
 #include "Source/StateMachine/StateMachine.h"
 #include "Source/Monitor/MonitorThread.h"
 #include "Source/Monitor/NetworkMonitor/NetworkMonitor.h"
+#include "Source/Monitor/NotionMonitor/NotionMonitor.h"
 #include "Source/Audio/AudioPipeline.h"
 
 
@@ -47,7 +48,10 @@ namespace app
 		m_monitorThread->Init(*m_stateMachine, intervalMs);
 
 		// 監視モジュールの登録
+		// NetworkMonitor は RequiresAtHome() == false のため常時動作する
 		m_monitorThread->AddMonitor(std::make_unique<NetworkMonitor>(profile));
+		// NotionMonitor は RequiresAtHome() == true のため在宅時のみ動作する
+		m_monitorThread->AddMonitor(std::make_unique<NotionMonitor>(profile));
 
 		// 音声パイプラインの初期化
 		m_audioPipeline = std::make_unique<AudioPipeline>();
@@ -73,7 +77,7 @@ namespace app
 		{
 			// 現在の状態の Update を呼び出す
 			m_stateMachine->Update();
-			// メインループの周期を制御する（例: 100msごと）
+			// メインループの周期を制御する
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
 			// TODO: フェーズ2以降でここに音声入力の処理やUIの更新を追加する

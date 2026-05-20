@@ -4,7 +4,7 @@
  */
 #pragma once
 
- // Windows API（NetworkMonitor 用）
+ // Windows API（NetworkMonitor / NotionMonitor 用）
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -14,6 +14,7 @@
 #include <Windows.h>
 #include <wlanapi.h>
 #include <objbase.h>
+#include <winhttp.h>
 
 // 標準ライブラリ
 #include <string>
