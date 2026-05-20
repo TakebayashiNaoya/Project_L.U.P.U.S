@@ -112,13 +112,20 @@ namespace app
 			return "Standby";
 		}
 
-		// 在宅かつ未完了タスクあり、または姿勢悪化の場合は TaskFocus に遷移する
-		if (context.m_hasPendingTasks || context.m_isSlouching)
+		// 即時警告リストが空かどうかをスレッドセーフに確認する
+		bool isHasWarnings = false;
+		{
+			std::lock_guard<std::mutex> lock(context.m_warningsMutex);
+			isHasWarnings = !context.m_instantWarnings.empty();
+		}
+
+		// 在宅かつ未完了タスクあり、姿勢悪化、またはコード警告がある場合は TaskFocus に遷移する
+		if (context.m_hasPendingTasks || context.m_isSlouching || isHasWarnings)
 		{
 			return "TaskFocus";
 		}
 
-		// 在宅かつ全タスク完了・姿勢問題なしの場合は TaskCompleted に遷移する
+		// 在宅かつ全タスク完了・姿勢問題なし・警告なしの場合は TaskCompleted に遷移する
 		return "TaskCompleted";
 	}
 

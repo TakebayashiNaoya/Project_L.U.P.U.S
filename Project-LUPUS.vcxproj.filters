@@ -28,6 +28,12 @@
     <Filter Include="Source\Monitor\NotionMonitor">
       <UniqueIdentifier>{14a6ffe5-a1da-4ce1-9dc2-4d0ab21052be}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Monitor\CodeReviewMonitor">
+      <UniqueIdentifier>{5aeab902-086d-4ff5-8c9d-62992401bc85}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Monitor\DocumentReviewMonitor">
+      <UniqueIdentifier>{f3d2adb9-1e58-40f4-8e06-c448004e282e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="external\CRC32.h">
@@ -50,9 +56,6 @@
     </ClInclude>
     <ClInclude Include="Source\Monitor\MonitorThread.h">
       <Filter>Source\Monitor</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Profile\ProfileLoader.h">
-      <Filter>Source\Profile</Filter>
     </ClInclude>
     <ClInclude Include="Source\StateMachine\IState.h">
       <Filter>Source\StateMachine</Filter>
@@ -79,6 +82,18 @@
     <ClInclude Include="Source\Monitor\NotionMonitor\NotionMonitor.h">
       <Filter>Source\Monitor\NotionMonitor</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Monitor\CodeReviewMonitor\CodeReviewMonitor.h">
+      <Filter>Source\Monitor\CodeReviewMonitor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Monitor\DocumentReviewMonitor\DocumentReviewMonitor.h">
+      <Filter>Source\Monitor\DocumentReviewMonitor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Monitor\DocumentReviewMonitor\IDocumentExtractor.h">
+      <Filter>Source\Monitor\DocumentReviewMonitor</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Profile\ProfileManager.h">
+      <Filter>Source\Profile</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\App\LupusApp.cpp">
@@ -89,9 +104,6 @@
     </ClCompile>
     <ClCompile Include="Source\Monitor\MonitorThread.cpp">
       <Filter>Source\Monitor</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Profile\ProfileLoader.cpp">
-      <Filter>Source\Profile</Filter>
     </ClCompile>
     <ClCompile Include="Source\StateMachine\StateMachine.cpp">
       <Filter>Source\StateMachine</Filter>
@@ -112,6 +124,15 @@
     </ClCompile>
     <ClCompile Include="Source\Monitor\NotionMonitor\NotionMonitor.cpp">
       <Filter>Source\Monitor\NotionMonitor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Monitor\CodeReviewMonitor\CodeReviewMonitor.cpp">
+      <Filter>Source\Monitor\CodeReviewMonitor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Monitor\DocumentReviewMonitor\DocumentReviewMonitor.cpp">
+      <Filter>Source\Monitor\DocumentReviewMonitor</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Profile\ProfileManager.cpp">
+      <Filter>Source\Profile</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
