@@ -12,9 +12,7 @@ namespace app
 
 	void StateStandby::OnEnter(const nlohmann::json& profile)
 	{
-		const std::string prompt = profile.value(
-			nlohmann::json::json_pointer("/states/Standby"), "");
-		std::cout << "[StateStandby] OnEnter | プロンプト: " << prompt << std::endl;
+		std::cout << "[StateStandby] OnEnter" << std::endl;
 	}
 
 
