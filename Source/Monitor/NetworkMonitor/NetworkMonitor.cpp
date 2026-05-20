@@ -29,13 +29,16 @@ namespace app
 	}
 
 
-	std::string NetworkMonitor::Observe()
+	void NetworkMonitor::Observe(SystemContext& context)
 	{
 		const std::string currentSsid = GetCurrentSsid();
 
-		// home_ssids が空、または SSID が一致しない場合は外出とみなす
+		// SSID が取得できた場合はネットワークに接続中とみなす
+		const bool isConnected = !currentSsid.empty();
+
+		// 自宅 SSID リストと照合して在宅判定を行う
 		bool isAtHome = false;
-		if (!currentSsid.empty() && !m_homeSsids.empty())
+		if (isConnected && !m_homeSsids.empty())
 		{
 			for (const auto& homeSsid : m_homeSsids)
 			{
@@ -48,20 +51,28 @@ namespace app
 		}
 
 		// 状態が変化したときのみログを出力する
-		if (isAtHome != m_isAtHome)
+		if (isAtHome != m_isAtHome || isConnected != m_isConnected)
 		{
 			m_isAtHome = isAtHome;
-			if (m_isAtHome)
+			m_isConnected = isConnected;
+
+			if (!m_isConnected)
+			{
+				std::cout << "[NetworkMonitor] ネットワーク未接続を検出しました" << std::endl;
+			}
+			else if (m_isAtHome)
 			{
 				std::cout << "[NetworkMonitor] 在宅を検出しました。SSID: " << currentSsid << std::endl;
 			}
 			else
 			{
-				std::cout << "[NetworkMonitor] 外出を検出しました。SSID: " << currentSsid << std::endl;
+				std::cout << "[NetworkMonitor] 外出先ネットワークを検出しました。SSID: " << currentSsid << std::endl;
 			}
 		}
 
-		return m_isAtHome ? "" : "Standby";
+		// 共有コンテキストに結果を書き込む
+		context.m_isAtHome = m_isAtHome;
+		context.m_isConnected = m_isConnected;
 	}
 
 
