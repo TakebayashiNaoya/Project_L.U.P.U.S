@@ -8,17 +8,34 @@
 
 namespace app
 {
+	StateStandby::StateStandby(
+		const std::string& assistantName,
+		const std::string& standbyMessage
+	)
+		: m_assistantName(assistantName)
+		, m_standbyMessage(standbyMessage)
+	{}
 
 
-	void StateStandby::OnEnter(const nlohmann::json& profile)
+	void StateStandby::OnEnter()
 	{
+		// 遷移のたびに初回出力フラグをリセットする
+		m_isFirstUpdate = true;
+
 		std::cout << "[StateStandby] OnEnter" << std::endl;
 	}
 
 
 	void StateStandby::OnUpdate()
 	{
-		// TODO: Standby状態の定期処理を実装する
+		// 待機状態では初回のみメッセージを出力し、以降は何もしない
+		if (!m_isFirstUpdate)
+		{
+			return;
+		}
+
+		m_isFirstUpdate = false;
+		NotifyUser(m_standbyMessage);
 	}
 
 
@@ -31,6 +48,14 @@ namespace app
 	const char* StateStandby::GetName() const
 	{
 		return "Standby";
+	}
+
+
+	void StateStandby::NotifyUser(const std::string& message) const
+	{
+		// フェーズ2: std::cout へのログ出力のみ
+		// フェーズ3: ここに TTS / AudioPipeline への連携を追加する
+		std::cout << "[" << m_assistantName << "] " << message << std::endl;
 	}
 
 

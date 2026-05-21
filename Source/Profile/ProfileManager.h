@@ -66,6 +66,22 @@ namespace app
 		std::string GetInstantWarningMessage() const;
 
 		/**
+		 * @brief Standby 状態のメッセージを取得する
+		 * @details persona.json の "standby_message" キーの値を返す。
+		 *          未設定の場合はデフォルト文言を返す。
+		 * @return Standby メッセージ文字列
+		 */
+		std::string GetStandbyMessage() const;
+
+		/**
+		 * @brief TaskCompleted 状態のメッセージを取得する
+		 * @details persona.json の "completion_message" キーの値を返す。
+		 *          未設定の場合はデフォルト文言を返す。
+		 * @return TaskCompleted メッセージ文字列
+		 */
+		std::string GetCompletionMessage() const;
+
+		/**
 		 * @brief プロファイルが正常に読み込まれているか確認する
 		 * @return 読み込み済みの場合 true
 		 */

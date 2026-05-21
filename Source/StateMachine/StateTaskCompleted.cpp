@@ -8,18 +8,34 @@
 
 namespace app
 {
+	StateTaskCompleted::StateTaskCompleted(
+		const std::string& assistantName,
+		const std::string& completionMessage
+	)
+		: m_assistantName(assistantName)
+		, m_completionMessage(completionMessage)
+	{}
 
 
-	void StateTaskCompleted::OnEnter(const nlohmann::json& profile)
+	void StateTaskCompleted::OnEnter()
 	{
+		// 遷移のたびに初回出力フラグをリセットする
+		m_isFirstUpdate = true;
+
 		std::cout << "[StateTaskCompleted] OnEnter" << std::endl;
 	}
 
 
 	void StateTaskCompleted::OnUpdate()
 	{
-		// TODO: TaskCompleted状態の定期処理を実装する
-		//       （称賛メッセージの表示、休憩促進通知など）
+		// 完了状態では初回のみ称賛メッセージを出力し、以降は何もしない
+		if (!m_isFirstUpdate)
+		{
+			return;
+		}
+
+		m_isFirstUpdate = false;
+		NotifyUser(m_completionMessage);
 	}
 
 
@@ -32,6 +48,14 @@ namespace app
 	const char* StateTaskCompleted::GetName() const
 	{
 		return "TaskCompleted";
+	}
+
+
+	void StateTaskCompleted::NotifyUser(const std::string& message) const
+	{
+		// フェーズ2: std::cout へのログ出力のみ
+		// フェーズ3: ここに TTS / AudioPipeline への連携を追加する
+		std::cout << "[" << m_assistantName << "] " << message << std::endl;
 	}
 
 

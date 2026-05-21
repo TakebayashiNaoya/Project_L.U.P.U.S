@@ -102,6 +102,18 @@ namespace app
 	}
 
 
+	std::string ProfileManager::GetStandbyMessage() const
+	{
+		return m_profile.value("standby_message", "外出中のため待機モードです。");
+	}
+
+
+	std::string ProfileManager::GetCompletionMessage() const
+	{
+		return m_profile.value("completion_message", "全タスクが完了しました。お疲れ様でした。");
+	}
+
+
 	bool ProfileManager::IsLoaded() const
 	{
 		return m_isLoaded;

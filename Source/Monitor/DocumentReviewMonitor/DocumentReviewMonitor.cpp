@@ -69,12 +69,8 @@ namespace app
 
 	void DocumentReviewMonitor::Observe(SystemContext& context)
 	{
-		// 自モジュール専用のコンテナを冒頭でクリアして最新結果で書き直す
-		{
-			std::lock_guard<std::mutex> lock(context.m_documentWarningsMutex);
-			context.m_documentWarnings.clear();
-		}
-
+		// 変更なしの場合は context を更新せず前回値を保持する。
+		// (冒頭の clear() を行わないことで、タイミングによる空書き込みを防止する)
 		std::ostringstream deepReviewBuffer;
 		std::vector<std::string> newWarnings;
 		bool isAnyFileChanged = false;

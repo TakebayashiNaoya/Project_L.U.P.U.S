@@ -22,21 +22,23 @@ namespace app
 
 	void StateMachine::Init(
 		SystemContext& context,
-		const nlohmann::json& profile,
 		const std::string& systemPrompt,
 		const std::string& assistantName,
-		const std::string& instantWarningMessage
+		const std::string& instantWarningMessage,
+		const std::string& standbyMessage,
+		const std::string& completionMessage
 	)
 	{
 		m_context = &context;
-		m_profile = profile;
 		m_systemPrompt = systemPrompt;
 		m_assistantName = assistantName;
 		m_instantWarningMessage = instantWarningMessage;
+		m_standbyMessage = standbyMessage;
+		m_completionMessage = completionMessage;
 
 		// 初期状態は Standby
 		m_currentState = CreateState("Standby");
-		m_currentState->OnEnter(m_profile);
+		m_currentState->OnEnter();
 	}
 
 
@@ -80,7 +82,7 @@ namespace app
 
 		m_currentState = std::move(nextState);
 		std::cout << "[StateMachine] 状態遷移: " << stateName << std::endl;
-		m_currentState->OnEnter(m_profile);
+		m_currentState->OnEnter();
 	}
 
 
@@ -100,16 +102,23 @@ namespace app
 		switch (Hash32(stateName.c_str()))
 		{
 		case Hash32("Standby"):
-			return std::make_unique<StateStandby>();
+			return std::make_unique<StateStandby>(
+				m_assistantName,
+				m_standbyMessage
+			);
 		case Hash32("TaskFocus"):
-			// SystemContext / assistantName / instantWarningMessage を注入して生成する
+			// SystemContext / systemPrompt / assistantName / instantWarningMessage を注入して生成する
 			return std::make_unique<StateTaskFocus>(
 				*m_context,
+				m_systemPrompt,
 				m_assistantName,
 				m_instantWarningMessage
 			);
 		case Hash32("TaskCompleted"):
-			return std::make_unique<StateTaskCompleted>();
+			return std::make_unique<StateTaskCompleted>(
+				m_assistantName,
+				m_completionMessage
+			);
 		default:
 			return nullptr;
 		}
