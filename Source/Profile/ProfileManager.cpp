@@ -68,7 +68,7 @@ namespace app
 
 		m_isLoaded = true;
 
-		const std::string name = m_profile.value("assistant_name", "L.U.P.U.S.");
+		const std::string name = GetAssistantName();
 		std::cout << "[ProfileManager] 統合完了: " << name << std::endl;
 
 		return true;
@@ -87,6 +87,21 @@ namespace app
 	}
 
 
+	std::string ProfileManager::GetAssistantName() const
+	{
+		return m_profile.value("assistant_name", "L.U.P.U.S.");
+	}
+
+
+	std::string ProfileManager::GetInstantWarningMessage() const
+	{
+		return m_profile.value(
+			"instant_warning_message",
+			"規約違反または未完了タスクが検出されています。作業に集中してください。"
+		);
+	}
+
+
 	bool ProfileManager::IsLoaded() const
 	{
 		return m_isLoaded;
@@ -101,13 +116,11 @@ namespace app
 	{
 		outJson = nlohmann::json::object();
 
-		// ベースファイルの読み込み(必須)
 		if (!ReadJsonFile(basePath, outJson))
 		{
 			return false;
 		}
 
-		// private/ の同名ファイルが存在する場合は同名キーを上書きマージする
 		if (std::filesystem::exists(overridePath))
 		{
 			nlohmann::json overrideJson;
@@ -147,10 +160,8 @@ namespace app
 	{
 		outText.clear();
 
-		// config/ のベースファイルを読み込む
 		const bool isBaseLoaded = ReadTextFile(basePath, outText);
 
-		// private/ の同名ファイルが存在する場合は全文上書きする
 		if (std::filesystem::exists(overridePath))
 		{
 			std::string overrideText;
@@ -175,7 +186,6 @@ namespace app
 			return;
 		}
 
-		// 統合済み JSON の文字列型の値のみを対象にプレースホルダーを置換する
 		for (const auto& [key, value] : m_profile.items())
 		{
 			if (!value.is_string())
@@ -273,14 +283,12 @@ namespace app
 
 		for (const auto& [key, value] : src.items())
 		{
-			// 両方がオブジェクト型のキーは再帰的にディープマージする
 			if (dst.contains(key) && dst[key].is_object() && value.is_object())
 			{
 				MergeJson(dst[key], value);
 			}
 			else
 			{
-				// それ以外は src の値で上書きする
 				dst[key] = value;
 			}
 		}

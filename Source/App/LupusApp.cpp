@@ -39,10 +39,20 @@ namespace app
 		}
 
 		const nlohmann::json& profile = m_profileManager->GetProfile();
+		const std::string& systemPrompt = m_profileManager->GetSystemPrompt();
+		const std::string assistantName = m_profileManager->GetAssistantName();
+		const std::string instantWarningMessage = m_profileManager->GetInstantWarningMessage();
 
 		// ステートマシンの初期化
+		// SystemContext / systemPrompt / assistantName / instantWarningMessage を注入する
 		m_stateMachine = std::make_unique<StateMachine>();
-		m_stateMachine->Init(profile);
+		m_stateMachine->Init(
+			m_context,
+			profile,
+			systemPrompt,
+			assistantName,
+			instantWarningMessage
+		);
 
 		// 監視スレッドの初期化
 		const int intervalMs = profile.value("monitor_interval_ms", 1000);
@@ -69,43 +79,30 @@ namespace app
 
 	void LupusApp::Run()
 	{
-		// アプリケーションの実行状態を true に設定する
 		m_isRunning = true;
 
-		// 監視スレッドと音声パイプラインを開始する
 		m_monitorThread->Start();
 		m_audioPipeline->Start();
 
 		std::cout << "[LupusApp] メインループを開始します。終了するには Enter キーを押してください" << std::endl;
 
-		// メインループ
 		while (m_isRunning)
 		{
-			// 現在の状態の Update を呼び出す
 			m_stateMachine->Update();
-			// メインループの周期を制御する
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-			// TODO: フェーズ2以降でここに音声入力の処理や UI の更新を追加する
 		}
 	}
 
 
 	void LupusApp::Shutdown()
 	{
-		// 多重呼び出しを防ぐ
 		if (!m_isRunning) return;
 
 		std::cout << "[LupusApp] シャットダウンを開始します" << std::endl;
 
-		// アプリケーションの実行状態を false に設定する
 		m_isRunning = false;
 
-		// MonitorThread を先に停止する。
-		// AudioPipeline より先に止めることで、スレッド動作中に StateMachine::Evaluate() が
-		// 呼ばれ続けるのを防ぐ。
-		// reset() でスマートポインタを nullptr にすることで、デストラクタ経由の
-		// 二重 Stop() 呼び出しを防止する。
+		// MonitorThread を先に停止し、StateMachine::Evaluate() の呼び出しを断ち切る
 		if (m_monitorThread)
 		{
 			m_monitorThread->Stop();

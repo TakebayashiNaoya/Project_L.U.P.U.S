@@ -11,6 +11,10 @@
 
 namespace app
 {
+	// m_deepReviewResult の最大保持文字数。超過した場合は古いものを切り捨てる
+	static constexpr std::size_t DEEP_REVIEW_MAX_CHARS = 100000;
+
+
 	// ---------------------------------------------------------------
 	// MarkdownExtractor の実装
 	// ---------------------------------------------------------------
@@ -44,17 +48,14 @@ namespace app
 	{
 		LoadDirectories(profile);
 
-		// Temp ディレクトリのパスをプロファイルから読み込む(なければデフォルト値を使用)
 		const std::string tempDirStr = profile.value("document_temp_directory", "private/temp");
 		m_tempDirectory = std::filesystem::path(tempDirStr);
 
-		// Temp ディレクトリが存在しない場合は作成する
 		if (!std::filesystem::exists(m_tempDirectory))
 		{
 			std::filesystem::create_directories(m_tempDirectory);
 		}
 
-		// Strategyパターンの Extractor を登録する(拡張子の追加はここに追記する)
 		m_extractors.push_back(std::make_unique<MarkdownExtractor>());
 
 		// TODO: フェーズ3以降で以下を追加する
@@ -68,7 +69,12 @@ namespace app
 
 	void DocumentReviewMonitor::Observe(SystemContext& context)
 	{
-		// 今回のスキャンで変更を検知したファイルの抽出テキストを蓄積するバッファ
+		// 自モジュール専用のコンテナを冒頭でクリアして最新結果で書き直す
+		{
+			std::lock_guard<std::mutex> lock(context.m_documentWarningsMutex);
+			context.m_documentWarnings.clear();
+		}
+
 		std::ostringstream deepReviewBuffer;
 		std::vector<std::string> newWarnings;
 		bool isAnyFileChanged = false;
@@ -80,7 +86,22 @@ namespace app
 				continue;
 			}
 
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(dir))
+			// skip_permission_denied で権限不足のディレクトリを読み飛ばす
+			std::error_code iterEc;
+			std::filesystem::recursive_directory_iterator dirIter(
+				dir,
+				std::filesystem::directory_options::skip_permission_denied,
+				iterEc
+			);
+
+			if (iterEc)
+			{
+				std::cerr << "[DocumentReviewMonitor] ディレクトリの走査を開始できませんでした: "
+					<< PathToUtf8(dir) << " (" << iterEc.message() << ")" << std::endl;
+				continue;
+			}
+
+			for (const auto& entry : dirIter)
 			{
 				if (!entry.is_regular_file())
 				{
@@ -89,21 +110,24 @@ namespace app
 
 				const std::filesystem::path& filePath = entry.path();
 
-				// 処理可能な Extractor が存在するファイルのみ対象にする
 				const IDocumentExtractor* extractor = FindExtractor(filePath);
 				if (!extractor)
 				{
 					continue;
 				}
 
-				// last_write_time でキャッシュを確認し、差分のみ処理する
-				const std::filesystem::file_time_type lastWriteTime = entry.last_write_time();
-				const std::string key = filePath.string();
+				// error_code 版で last_write_time を取得し、失敗したファイルはスキップする
+				std::error_code timeEc;
+				const std::filesystem::file_time_type lastWriteTime = entry.last_write_time(timeEc);
+				if (timeEc)
+				{
+					continue;
+				}
 
+				const std::string key = PathToUtf8(filePath);
 				const auto it = m_timestampCache.find(key);
 				if (it != m_timestampCache.end() && it->second == lastWriteTime)
 				{
-					// タイムスタンプが変わっていないためスキップする
 					continue;
 				}
 
@@ -111,32 +135,34 @@ namespace app
 				isAnyFileChanged = true;
 
 				std::cout << "[DocumentReviewMonitor] 変更を検知しました: "
-					<< filePath.filename().string() << std::endl;
+					<< PathToUtf8(filePath.filename()) << std::endl;
 
-				// Temp コピー機構: Word / Excel の排他ロックを回避してから読み込む
 				const std::filesystem::path tempPath = CopyToTemp(filePath);
 				if (tempPath.empty())
 				{
 					continue;
 				}
 
-				// テキストを抽出してバッファに蓄積する
 				const std::string extractedText = extractor->Extract(tempPath);
-
 				if (!extractedText.empty())
 				{
-					deepReviewBuffer << "=== " << filePath.filename().string() << " ===\n"
+					deepReviewBuffer << "=== " << PathToUtf8(filePath.filename()) << " ===\n"
 						<< extractedText << "\n\n";
 				}
 
-				// Level 1: 変更ファイルを検知したことを即時警告として通知する
-				const std::string warningMsg =
+				newWarnings.push_back(
 					std::string("[DocumentReviewMonitor] ドキュメント変更を検知しました。レビューが必要です: ")
-					+ filePath.filename().string();
-				newWarnings.push_back(warningMsg);
+					+ PathToUtf8(filePath.filename())
+				);
 
-				// Temp ファイルを削除する
-				std::filesystem::remove(tempPath);
+				// error_code 版 remove でスレッド停止を防ぐ
+				std::error_code removeEc;
+				std::filesystem::remove(tempPath, removeEc);
+				if (removeEc)
+				{
+					std::cerr << "[DocumentReviewMonitor] Temp ファイルの削除に失敗しました: "
+						<< PathToUtf8(tempPath) << " (" << removeEc.message() << ")" << std::endl;
+				}
 			}
 		}
 
@@ -145,20 +171,25 @@ namespace app
 			return;
 		}
 
-		// Level 1 警告を SystemContext にスレッドセーフに書き込む
+		// Level 1 警告を専用コンテナにスレッドセーフに書き込む
 		{
-			std::lock_guard<std::mutex> warningLock(context.m_warningsMutex);
-			for (const auto& w : newWarnings)
-			{
-				context.m_instantWarnings.push_back(w);
-			}
+			std::lock_guard<std::mutex> warningLock(context.m_documentWarningsMutex);
+			context.m_documentWarnings = newWarnings;
 		}
 
-		// Level 2 用の抽出テキストを SystemContext にスレッドセーフに書き込む
+		// Level 2 用テキストを上限付きで蓄積する
 		{
 			std::lock_guard<std::mutex> deepLock(context.m_deepReviewMutex);
-			// 前回の結果と結合して蓄積する(将来の LLM 送信時に参照される)
 			context.m_deepReviewResult += deepReviewBuffer.str();
+
+			// 上限を超えた場合は先頭から切り捨てて最新のみ保持する
+			if (context.m_deepReviewResult.size() > DEEP_REVIEW_MAX_CHARS)
+			{
+				context.m_deepReviewResult =
+					context.m_deepReviewResult.substr(
+						context.m_deepReviewResult.size() - DEEP_REVIEW_MAX_CHARS
+					);
+			}
 		}
 	}
 
@@ -171,12 +202,10 @@ namespace app
 
 	std::filesystem::path DocumentReviewMonitor::CopyToTemp(const std::filesystem::path& sourcePath) const
 	{
-		// コピー先のパスを "元のファイル名" のまま Temp ディレクトリ配下に作成する
 		const std::filesystem::path destPath = m_tempDirectory / sourcePath.filename();
 
 		try
 		{
-			// 既存の Temp ファイルを上書きする
 			std::filesystem::copy_file(
 				sourcePath,
 				destPath,

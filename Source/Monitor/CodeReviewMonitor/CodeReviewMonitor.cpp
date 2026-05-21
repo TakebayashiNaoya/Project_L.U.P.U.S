@@ -23,7 +23,13 @@ namespace app
 
 	void CodeReviewMonitor::Observe(SystemContext& context)
 	{
-		std::vector<std::string> newWarnings;
+		// 自モジュール専用のコンテナを冒頭でクリアして最新結果で書き直す
+		{
+			std::lock_guard<std::mutex> lock(context.m_codeViolationsMutex);
+			context.m_codeViolations.clear();
+		}
+
+		std::vector<std::string> newViolations;
 
 		for (const auto& dir : m_targetDirectories)
 		{
@@ -32,8 +38,22 @@ namespace app
 				continue;
 			}
 
-			// ディレクトリを再帰走査し、.cpp / .h ファイルを対象にする
-			for (const auto& entry : std::filesystem::recursive_directory_iterator(dir))
+			// skip_permission_denied で権限不足のディレクトリを読み飛ばす
+			std::error_code iterEc;
+			std::filesystem::recursive_directory_iterator dirIter(
+				dir,
+				std::filesystem::directory_options::skip_permission_denied,
+				iterEc
+			);
+
+			if (iterEc)
+			{
+				std::cerr << "[CodeReviewMonitor] ディレクトリの走査を開始できませんでした: "
+					<< PathToUtf8(dir) << " (" << iterEc.message() << ")" << std::endl;
+				continue;
+			}
+
+			for (const auto& entry : dirIter)
 			{
 				if (!entry.is_regular_file())
 				{
@@ -47,47 +67,44 @@ namespace app
 					continue;
 				}
 
-				// last_write_time を取得し、キャッシュと比較して差分のみスキャンする
-				const std::filesystem::file_time_type lastWriteTime = entry.last_write_time();
-				const std::string key = filePath.string();
-
-				const auto it = m_timestampCache.find(key);
-				if (it != m_timestampCache.end() && it->second == lastWriteTime)
+				// error_code 版で last_write_time を取得し、失敗したファイルはスキップする
+				std::error_code timeEc;
+				const std::filesystem::file_time_type lastWriteTime = entry.last_write_time(timeEc);
+				if (timeEc)
 				{
-					// タイムスタンプが変わっていないためスキップする
 					continue;
 				}
 
-				// タイムスタンプを更新してからスキャンを実行する
+				// キャッシュと比較して差分のみスキャンする
+				const std::string key = PathToUtf8(filePath);
+				const auto it = m_timestampCache.find(key);
+				if (it != m_timestampCache.end() && it->second == lastWriteTime)
+				{
+					continue;
+				}
+
 				m_timestampCache[key] = lastWriteTime;
 				const std::vector<std::string> violations = ScanFile(filePath);
 
 				for (const auto& violation : violations)
 				{
-					newWarnings.push_back(violation);
+					newViolations.push_back(violation);
 				}
 			}
 		}
 
-		// 結果を SystemContext にスレッドセーフに書き込む
+		// 結果を専用コンテナにスレッドセーフに書き込む
 		{
-			std::lock_guard<std::mutex> lock(context.m_warningsMutex);
-
-			// 現フェーズでは CodeReviewMonitor の結果で警告リストを全クリアして書き直す
-			context.m_instantWarnings.clear();
-
-			for (const auto& w : newWarnings)
-			{
-				context.m_instantWarnings.push_back(w);
-			}
+			std::lock_guard<std::mutex> lock(context.m_codeViolationsMutex);
+			context.m_codeViolations = newViolations;
 		}
 
-		const bool isHasViolations = !newWarnings.empty();
-		context.m_hasCodeViolations = isHasViolations;
+		const bool hasViolations = !newViolations.empty();
+		context.m_hasCodeViolations = hasViolations;
 
-		if (isHasViolations)
+		if (hasViolations)
 		{
-			std::cout << "[CodeReviewMonitor] 命名規則違反を " << newWarnings.size()
+			std::cout << "[CodeReviewMonitor] 命名規則違反を " << newViolations.size()
 				<< " 件検出しました" << std::endl;
 		}
 	}
@@ -107,7 +124,7 @@ namespace app
 		if (!ifs.is_open())
 		{
 			std::cerr << "[CodeReviewMonitor] ファイルを開けませんでした: "
-				<< filePath.string() << std::endl;
+				<< PathToUtf8(filePath) << std::endl;
 			return violations;
 		}
 
@@ -122,9 +139,8 @@ namespace app
 			{
 				if (std::regex_search(line, rule.m_pattern))
 				{
-					// 違反メッセージを "ファイル名(行番号): ルール名 - 説明" の形式で生成する
 					std::ostringstream oss;
-					oss << filePath.filename().string()
+					oss << PathToUtf8(filePath.filename())
 						<< "(" << lineNumber << ")"
 						<< " [" << rule.m_name << "] "
 						<< rule.m_message
@@ -142,8 +158,7 @@ namespace app
 	{
 		if (!profile.contains("code_review_rules") || !profile["code_review_rules"].is_array())
 		{
-			std::cout << std::string("[CodeReviewMonitor] プロファイルに code_review_rules が見つかりません。")
-				+ "デフォルトルールを使用します" << std::endl;
+			std::cout << "[CodeReviewMonitor] プロファイルに code_review_rules が見つかりません。デフォルトルールを使用します" << std::endl;
 			return;
 		}
 
@@ -179,8 +194,7 @@ namespace app
 	{
 		if (!profile.contains("code_review_directories") || !profile["code_review_directories"].is_array())
 		{
-			std::cout << std::string("[CodeReviewMonitor] プロファイルに code_review_directories が見つかりません。")
-				+ "スキャンを省略します" << std::endl;
+			std::cout << "[CodeReviewMonitor] プロファイルに code_review_directories が見つかりません。スキャンを省略します" << std::endl;
 			return;
 		}
 

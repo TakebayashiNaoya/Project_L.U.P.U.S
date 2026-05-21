@@ -20,9 +20,19 @@ namespace app
 	{}
 
 
-	void StateMachine::Init(const nlohmann::json& profile)
+	void StateMachine::Init(
+		SystemContext& context,
+		const nlohmann::json& profile,
+		const std::string& systemPrompt,
+		const std::string& assistantName,
+		const std::string& instantWarningMessage
+	)
 	{
+		m_context = &context;
 		m_profile = profile;
+		m_systemPrompt = systemPrompt;
+		m_assistantName = assistantName;
+		m_instantWarningMessage = instantWarningMessage;
 
 		// 初期状態は Standby
 		m_currentState = CreateState("Standby");
@@ -51,13 +61,11 @@ namespace app
 	{
 		std::lock_guard<std::mutex> lock(m_mutex);
 
-		// 同じ状態への遷移は無視する
 		if (m_currentState && std::string(m_currentState->GetName()) == stateName)
 		{
 			return;
 		}
 
-		// 遷移先が有効でなければ弾く
 		auto nextState = CreateState(stateName);
 		if (!nextState)
 		{
@@ -81,7 +89,6 @@ namespace app
 		std::lock_guard<std::mutex> lock(m_mutex);
 		if (m_currentState)
 		{
-			// GetName() の結果を std::string にコピーしてからロックを解放する
 			return std::string(m_currentState->GetName());
 		}
 		return "None";
@@ -95,7 +102,12 @@ namespace app
 		case Hash32("Standby"):
 			return std::make_unique<StateStandby>();
 		case Hash32("TaskFocus"):
-			return std::make_unique<StateTaskFocus>();
+			// SystemContext / assistantName / instantWarningMessage を注入して生成する
+			return std::make_unique<StateTaskFocus>(
+				*m_context,
+				m_assistantName,
+				m_instantWarningMessage
+			);
 		case Hash32("TaskCompleted"):
 			return std::make_unique<StateTaskCompleted>();
 		default:
@@ -106,26 +118,28 @@ namespace app
 
 	std::string StateMachine::ResolveStateName(const SystemContext& context) const
 	{
-		// 在宅でない場合は Standby に遷移する
 		if (!context.m_isAtHome)
 		{
 			return "Standby";
 		}
 
-		// 即時警告リストが空かどうかをスレッドセーフに確認する
-		bool isHasWarnings = false;
+		bool hasCodeViolations = false;
 		{
-			std::lock_guard<std::mutex> lock(context.m_warningsMutex);
-			isHasWarnings = !context.m_instantWarnings.empty();
+			std::lock_guard<std::mutex> lock(context.m_codeViolationsMutex);
+			hasCodeViolations = !context.m_codeViolations.empty();
 		}
 
-		// 在宅かつ未完了タスクあり、姿勢悪化、またはコード警告がある場合は TaskFocus に遷移する
-		if (context.m_hasPendingTasks || context.m_isSlouching || isHasWarnings)
+		bool hasDocumentWarnings = false;
+		{
+			std::lock_guard<std::mutex> lock(context.m_documentWarningsMutex);
+			hasDocumentWarnings = !context.m_documentWarnings.empty();
+		}
+
+		if (context.m_hasPendingTasks || context.m_isSlouching || hasCodeViolations || hasDocumentWarnings)
 		{
 			return "TaskFocus";
 		}
 
-		// 在宅かつ全タスク完了・姿勢問題なし・警告なしの場合は TaskCompleted に遷移する
 		return "TaskCompleted";
 	}
 

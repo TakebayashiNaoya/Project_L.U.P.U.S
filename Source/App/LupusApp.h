@@ -3,8 +3,9 @@
  * @brief アプリケーション統括クラス
  */
 #pragma once
-#include <memory>
 #include <atomic>
+#include <memory>
+#include "Source/Monitor/SystemContext.h"
 
 
 namespace app
@@ -41,6 +42,8 @@ namespace app
 
 
 	private:
+		/** 各 Monitor が更新し StateMachine と State が参照する共有コンテキスト */
+		SystemContext m_context;
 		/** 設定ファイルの中央管理クラス */
 		std::unique_ptr<ProfileManager> m_profileManager;
 		/** ステートマシン管理クラス */

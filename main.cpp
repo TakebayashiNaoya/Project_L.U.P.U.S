@@ -8,6 +8,10 @@
 
 int main()
 {
+	// コンソールの入出力エンコーディングを UTF-8 に設定する
+	SetConsoleOutputCP(CP_UTF8);
+	SetConsoleCP(CP_UTF8);
+
 	app::LupusApp lupusApp;
 
 	if (!lupusApp.Init())

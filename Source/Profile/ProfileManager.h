@@ -50,6 +50,22 @@ namespace app
 		const std::string& GetSystemPrompt() const;
 
 		/**
+		 * @brief アシスタント名を取得する
+		 * @details persona.json の "assistant_name" キーの値を返す。
+		 *          未設定の場合は "L.U.P.U.S." を返す。
+		 * @return アシスタント名文字列
+		 */
+		std::string GetAssistantName() const;
+
+		/**
+		 * @brief Level 1 即時警告メッセージを取得する
+		 * @details persona.json の "instant_warning_message" キーの値を返す。
+		 *          未設定の場合はデフォルト文言を返す。
+		 * @return 即時警告メッセージ文字列
+		 */
+		std::string GetInstantWarningMessage() const;
+
+		/**
 		 * @brief プロファイルが正常に読み込まれているか確認する
 		 * @return 読み込み済みの場合 true
 		 */
@@ -82,7 +98,6 @@ namespace app
 
 		/**
 		 * @brief Markdown ファイルをベース+オーバーライドの順で読み込む
-		 * @details private/ の同名ファイルが存在する場合は全文上書きする。
 		 * @param basePath     config/ 側のファイルパス
 		 * @param overridePath private/ 側のファイルパス
 		 * @param outText      読み込み結果の出力先
@@ -96,7 +111,6 @@ namespace app
 		/**
 		 * @brief m_systemPrompt 内の ${キー名} プレースホルダーを統合済み JSON の値で置換する
 		 * @details JSON の値が文字列型のキーのみを対象とする。
-		 *          例: "${assistant_name}" -> "Lyca"
 		 */
 		void ReplacePlaceholders();
 
