@@ -73,15 +73,6 @@ namespace app
 		// 共有コンテキストに結果を書き込む
 		context.m_isAtHome = m_isAtHome;
 		context.m_isConnected = m_isConnected;
-
-		// ---------------------------------------------------------------
-		// [DEBUG] 在宅フラグ強制上書き: TaskFocus フルフロー確認用
-		// 確認完了後はこのブロックを削除すること
-		// ---------------------------------------------------------------
-		context.m_isAtHome = true;
-		context.m_isConnected = true;
-		//std::cout << "[NetworkMonitor][DEBUG] 在宅フラグを強制的に true に設定しました" << std::endl;
-		// ---------------------------------------------------------------
 	}
 
 

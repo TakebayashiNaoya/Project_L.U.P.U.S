@@ -15,6 +15,15 @@ namespace app
 {
 
 
+	namespace
+	{
+		DWORD RESOLVE_TIMEOUT_MS = 10000;	// DNS解決タイムアウト
+		DWORD CONNECT_TIMEOUT_MS = 10000;	// 接続タイムアウト
+		DWORD SEND_TIMEOUT_MS = 10000;		// 送信タイムアウト
+		DWORD RECEIVE_TIMEOUT_MS = 60000;	// 受信タイムアウト
+	}
+
+
 	GeminiClient::GeminiClient(const std::string& apiKey)
 		: m_apiKey(apiKey)
 	{}
@@ -53,11 +62,13 @@ namespace app
 		}
 
 		// タイムアウト設定
-		DWORD resolveTimeout = 10000;
-		DWORD connectTimeout = 10000;
-		DWORD sendTimeout = 10000;
-		DWORD receiveTimeout = 60000;
-		WinHttpSetTimeouts(hSession, resolveTimeout, connectTimeout, sendTimeout, receiveTimeout);
+		WinHttpSetTimeouts(
+			hSession,
+			RESOLVE_TIMEOUT_MS,
+			CONNECT_TIMEOUT_MS,
+			SEND_TIMEOUT_MS,
+			RECEIVE_TIMEOUT_MS
+		);
 
 		// サーバー接続
 		HINTERNET hConnect = WinHttpConnect(hSession, serverName.c_str(), INTERNET_DEFAULT_HTTPS_PORT, 0);

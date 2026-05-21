@@ -131,11 +131,14 @@ namespace app
 
 	std::string StateMachine::ResolveStateName(const SystemContext& context) const
 	{
-		if (!context.m_isAtHome)
+		// 外出先でもネットワークにつながっているなら作業モードへ遷移可能にする
+				// 完全に未接続の状態（オフライン）の時だけ Standby にする
+		if (!context.m_isConnected)
 		{
 			return "Standby";
 		}
 
+		// ネットワークにつながっているなら、在宅・外出に関わらずタスクや違反を確認する
 		bool hasCodeViolations = false;
 		{
 			std::lock_guard<std::mutex> lock(context.m_codeViolationsMutex);
