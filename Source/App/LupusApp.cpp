@@ -42,22 +42,25 @@ namespace app
 		const std::string& systemPrompt = m_profileManager->GetSystemPrompt();
 		const std::string assistantName = m_profileManager->GetAssistantName();
 		const std::string instantWarningMessage = m_profileManager->GetInstantWarningMessage();
+		const std::string standbyMessage = m_profileManager->GetStandbyMessage();
+		const std::string completionMessage = m_profileManager->GetCompletionMessage();
 
 		// ステートマシンの初期化
-		// SystemContext / systemPrompt / assistantName / instantWarningMessage を注入する
+		// 全 State が必要とする文字列を ProfileManager から受け取り、StateMachine 経由で DI する
 		m_stateMachine = std::make_unique<StateMachine>();
 		m_stateMachine->Init(
 			m_context,
-			profile,
 			systemPrompt,
 			assistantName,
-			instantWarningMessage
+			instantWarningMessage,
+			standbyMessage,
+			completionMessage
 		);
 
 		// 監視スレッドの初期化
 		const int intervalMs = profile.value("monitor_interval_ms", 1000);
 		m_monitorThread = std::make_unique<MonitorThread>();
-		m_monitorThread->Init(*m_stateMachine, intervalMs);
+		m_monitorThread->Init(m_context, *m_stateMachine, intervalMs);
 
 		// 監視モジュールの登録
 		// NetworkMonitor: RequiresNetwork() == false のため常時動作する

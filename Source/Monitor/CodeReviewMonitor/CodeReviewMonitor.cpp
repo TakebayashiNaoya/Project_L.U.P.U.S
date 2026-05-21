@@ -23,14 +23,7 @@ namespace app
 
 	void CodeReviewMonitor::Observe(SystemContext& context)
 	{
-		// 自モジュール専用のコンテナを冒頭でクリアして最新結果で書き直す
-		{
-			std::lock_guard<std::mutex> lock(context.m_codeViolationsMutex);
-			context.m_codeViolations.clear();
-		}
-
-		std::vector<std::string> newViolations;
-
+		// 差分スキャン: 変更があったファイルのみ m_violationCache を更新する
 		for (const auto& dir : m_targetDirectories)
 		{
 			if (!std::filesystem::exists(dir))
@@ -62,7 +55,7 @@ namespace app
 
 				const std::filesystem::path& filePath = entry.path();
 				const std::string ext = filePath.extension().string();
-				if (ext != ".cpp" && ext != ".h")
+				if (ext != ".cpp" && ext != ".h" && ext != ".hpp")
 				{
 					continue;
 				}
@@ -75,38 +68,48 @@ namespace app
 					continue;
 				}
 
-				// キャッシュと比較して差分のみスキャンする
 				const std::string key = PathToUtf8(filePath);
 				const auto it = m_timestampCache.find(key);
 				if (it != m_timestampCache.end() && it->second == lastWriteTime)
 				{
+					// 変更なし: このファイルの m_violationCache はそのまま保持する
 					continue;
 				}
 
+				// 変更あり: タイムスタンプを更新してスキャンし、キャッシュを上書きする
 				m_timestampCache[key] = lastWriteTime;
-				const std::vector<std::string> violations = ScanFile(filePath);
-
-				for (const auto& violation : violations)
-				{
-					newViolations.push_back(violation);
-				}
+				m_violationCache[key] = ScanFile(filePath);
 			}
 		}
 
-		// 結果を専用コンテナにスレッドセーフに書き込む
+		// m_violationCache の全エントリを結合して最新の全件リストを組み立てる
+		std::vector<std::string> allViolations;
+		for (const auto& [key, violations] : m_violationCache)
+		{
+			allViolations.insert(allViolations.end(), violations.begin(), violations.end());
+		}
+
+		// 件数の変化があった場合のみログを出力する
+		const bool hasViolations = !allViolations.empty();
+		if (hasViolations != static_cast<bool>(context.m_hasCodeViolations))
+		{
+			if (hasViolations)
+			{
+				std::cout << "[CodeReviewMonitor] 命名規則違反を " << allViolations.size()
+					<< " 件検出しました" << std::endl;
+			}
+			else
+			{
+				std::cout << "[CodeReviewMonitor] 命名規則違反がなくなりました" << std::endl;
+			}
+		}
+
+		// 最新の全件リストを context に書き込む
 		{
 			std::lock_guard<std::mutex> lock(context.m_codeViolationsMutex);
-			context.m_codeViolations = newViolations;
+			context.m_codeViolations = allViolations;
 		}
-
-		const bool hasViolations = !newViolations.empty();
 		context.m_hasCodeViolations = hasViolations;
-
-		if (hasViolations)
-		{
-			std::cout << "[CodeReviewMonitor] 命名規則違反を " << newViolations.size()
-				<< " 件検出しました" << std::endl;
-		}
 	}
 
 
@@ -119,6 +122,31 @@ namespace app
 	std::vector<std::string> CodeReviewMonitor::ScanFile(const std::filesystem::path& filePath) const
 	{
 		std::vector<std::string> violations;
+		const std::string ext = filePath.extension().string();
+
+		// 現在のファイル拡張子に適用すべきルールだけを activeRules に抽出する
+		std::vector<const CodeReviewRule*> activeRules;
+		for (const auto& rule : m_rules)
+		{
+			if (rule.m_extensions.empty())
+			{
+				activeRules.push_back(&rule);
+			}
+			else
+			{
+				for (const auto& targetExt : rule.m_extensions)
+				{
+					if (ext == targetExt)
+					{
+						activeRules.push_back(&rule);
+						break;
+					}
+				}
+			}
+		}
+
+		// 適用するルールが1つも無ければ、ファイルを開かずに終了（最適化）
+		if (activeRules.empty()) return violations;
 
 		std::ifstream ifs(filePath);
 		if (!ifs.is_open())
@@ -172,6 +200,17 @@ namespace app
 			CodeReviewRule rule;
 			rule.m_name = ruleJson["name"].get<std::string>();
 			rule.m_message = ruleJson["message"].get<std::string>();
+
+			if (ruleJson.contains("extensions") && ruleJson["extensions"].is_array())
+			{
+				for (const auto& extNode : ruleJson["extensions"])
+				{
+					if (extNode.is_string())
+					{
+						rule.m_extensions.push_back(extNode.get<std::string>());
+					}
+				}
+			}
 
 			try
 			{

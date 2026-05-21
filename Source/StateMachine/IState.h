@@ -3,7 +3,6 @@
  * @brief ステートマシンの状態インターフェース
  */
 #pragma once
-#include "external/json.hpp"
 
 
 namespace app
@@ -12,6 +11,8 @@ namespace app
 
 	/**
 	 * @brief 各状態クラスが実装すべきインターフェース
+	 * @details 各 State が必要とするデータはすべてコンストラクタ経由で DI する。
+	 *          OnEnter() は遷移通知のみを担い、外部データへの依存を持たない。
 	 */
 	class IState
 	{
@@ -21,9 +22,8 @@ namespace app
 
 		/**
 		 * @brief 状態に遷移した直後に1度だけ呼ばれる
-		 * @param profile 読み込み済みのシステムプロファイル
 		 */
-		virtual void OnEnter(const nlohmann::json& profile) = 0;
+		virtual void OnEnter() = 0;
 
 		/**
 		 * @brief 状態が継続中に定期的に呼ばれる

@@ -28,6 +28,8 @@ namespace app
 		std::regex m_pattern;
 		/** ユーザーへ表示する違反の説明メッセージ */
 		std::string m_message;
+		/** 追加: このルールを適用する拡張子のリスト（空なら全対象） */
+		std::vector<std::string> m_extensions;
 
 		CodeReviewRule() = default;
 		CodeReviewRule(const CodeReviewRule&) = delete;
@@ -45,8 +47,9 @@ namespace app
 	 *        命名規則違反を Level 1 即時警告として SystemContext に書き込む監視モジュール
 	 * @details std::filesystem::last_write_time を用いたキャッシュにより、
 	 *          前回スキャン以降に更新されたファイルのみを正規表現でスキャンする。
-	 *          違反検知結果は context.m_instantWarnings および
-	 *          context.m_hasCodeViolations に格納される。
+	 *          全ファイルの最新違反リストは m_violationCache に保持し、
+	 *          毎 Observe() で context.m_codeViolations に全結合して書き込む。
+	 *          これにより差分スキャンのタイミングに依存せず常に最新の全件リストが参照可能になる。
 	 */
 	class CodeReviewMonitor : public IMonitor
 	{
@@ -98,6 +101,12 @@ namespace app
 		std::vector<CodeReviewRule> m_rules;
 		/** ファイルパス → 前回スキャン時の last_write_time のキャッシュ */
 		std::unordered_map<std::string, std::filesystem::file_time_type> m_timestampCache;
+		/**
+		 * @brief ファイルパス → そのファイルの最新違反リストのキャッシュ
+		 * @details 差分スキャンで変更があったファイルのみ更新される。
+		 *          毎 Observe() でこのキャッシュを全結合して context に書き込む。
+		 */
+		std::unordered_map<std::string, std::vector<std::string>> m_violationCache;
 	};
 
 

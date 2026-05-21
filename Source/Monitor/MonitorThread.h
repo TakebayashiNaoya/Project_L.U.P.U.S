@@ -32,10 +32,11 @@ namespace app
 
 		/**
 		 * @brief 監視スレッドを初期化する
+		 * @param context 各 Monitor が更新する共有コンテキスト
 		 * @param stateMachine 遷移判断先のステートマシン
 		 * @param intervalMs 監視間隔（ミリ秒）
 		 */
-		void Init(StateMachine& stateMachine, int intervalMs);
+		void Init(SystemContext& context, StateMachine& stateMachine, int intervalMs);
 
 		/**
 		 * @brief 監視モジュールを追加する
@@ -61,7 +62,7 @@ namespace app
 		/** 監視モジュールのリスト */
 		std::vector<std::unique_ptr<IMonitor>> m_monitors;
 		/** 全モニターの結果を集約する共有コンテキスト */
-		SystemContext m_context;
+		SystemContext* m_context = nullptr;
 		/** 監視スレッド */
 		std::thread m_thread;
 		/** 監視スレッドの実行状態 */

@@ -6,7 +6,6 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include "external/json.hpp"
 #include "Source/Monitor/SystemContext.h"
 
 
@@ -29,18 +28,20 @@ namespace app
 
 		/**
 		 * @brief ステートマシンを初期化する
-		 * @param context              各 Monitor が更新する共有コンテキスト(State に DI する)
-		 * @param profile              読み込み済みのシステムプロファイル
-		 * @param systemPrompt         LLM 連携用のシステムプロンプト文字列
-		 * @param assistantName        アシスタント名(persona.json の assistant_name)
-		 * @param instantWarningMessage Level 1 即時警告メッセージ(persona.json の instant_warning_message)
+		 * @param context               各 Monitor が更新する共有コンテキスト(State に DI する)
+		 * @param systemPrompt          LLM 連携用のシステムプロンプト文字列(StateTaskFocus に DI する)
+		 * @param assistantName         アシスタント名(全 State に DI する)
+		 * @param instantWarningMessage Level 1 即時警告メッセージ(StateTaskFocus に DI する)
+		 * @param standbyMessage        Standby 状態のメッセージ(StateStandby に DI する)
+		 * @param completionMessage     TaskCompleted 状態のメッセージ(StateTaskCompleted に DI する)
 		 */
 		void Init(
 			SystemContext& context,
-			const nlohmann::json& profile,
 			const std::string& systemPrompt,
 			const std::string& assistantName,
-			const std::string& instantWarningMessage
+			const std::string& instantWarningMessage,
+			const std::string& standbyMessage,
+			const std::string& completionMessage
 		);
 
 		/**
@@ -84,14 +85,16 @@ namespace app
 
 
 	private:
-		/** 読み込み済みのシステムプロファイル */
-		nlohmann::json m_profile;
-		/** LLM 連携用のシステムプロンプト文字列 */
+		/** LLM 連携用のシステムプロンプト文字列(StateTaskFocus に DI する) */
 		std::string m_systemPrompt;
-		/** アシスタント名(StateTaskFocus に DI する) */
+		/** アシスタント名(全 State のログ冒頭ラベルに使用) */
 		std::string m_assistantName;
 		/** Level 1 即時警告メッセージ(StateTaskFocus に DI する) */
 		std::string m_instantWarningMessage;
+		/** Standby 状態のメッセージ(StateStandby に DI する) */
+		std::string m_standbyMessage;
+		/** TaskCompleted 状態のメッセージ(StateTaskCompleted に DI する) */
+		std::string m_completionMessage;
 		/** 各 Monitor が更新する共有コンテキストへのポインタ(非所有) */
 		SystemContext* m_context = nullptr;
 		/** 現在の状態 */

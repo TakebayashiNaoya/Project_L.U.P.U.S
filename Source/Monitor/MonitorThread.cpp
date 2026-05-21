@@ -20,8 +20,9 @@ namespace app
 	}
 
 
-	void MonitorThread::Init(StateMachine& stateMachine, int intervalMs)
+	void MonitorThread::Init(SystemContext& context, StateMachine& stateMachine, int intervalMs)
 	{
+		m_context = &context;
 		m_stateMachine = &stateMachine;
 		m_interval = std::chrono::milliseconds(intervalMs);
 	}
@@ -66,7 +67,7 @@ namespace app
 			for (auto& monitor : m_monitors)
 			{
 				if (monitor->RequiresNetwork()) continue;
-				monitor->Observe(m_context);
+				monitor->Observe(*m_context);
 			}
 
 			// パス2: RequiresNetwork() == true のモニターを実行する。
@@ -74,12 +75,12 @@ namespace app
 			for (auto& monitor : m_monitors)
 			{
 				if (!monitor->RequiresNetwork()) continue;
-				if (!m_context.m_isConnected) continue;
-				monitor->Observe(m_context);
+				if (!m_context->m_isConnected) continue;
+				monitor->Observe(*m_context);
 			}
 
 			// 全モニターの観測結果をもとに StateMachine に遷移判断を委ねる
-			m_stateMachine->Evaluate(m_context);
+			m_stateMachine->Evaluate(*m_context);
 
 			std::this_thread::sleep_for(m_interval);
 		}

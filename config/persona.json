@@ -1,4 +1,6 @@
 ﻿{
-  "assistant_name": "L.U.P.U.S.",
-  "instant_warning_message": ""
+  "assistant_name": "LUPUS",
+  "instant_warning_message": "規約違反または未完了タスクが検出されています。作業に集中してください。",
+  "standby_message": "外出中のため待機モードです。",
+  "completion_message": "全タスクが完了しました。お疲れ様でした。"
 }
