@@ -29,42 +29,25 @@ namespace app
 		std::cout << "[StateTaskFocus] OnEnter" << std::endl;
 		NotifyUser(m_instantWarningMessage);
 
-		// 遷移時点の警告リストを即時取得して出力し、キャッシュに格納する。
+		// 遷移時点の警告リストでプロンプトを組み立ててキャッシュに格納する。
 		// こうすることで OnUpdate() のデバウンス判定が「遷移後の差分」のみを対象にできる。
 		const std::vector<std::string> currentWarnings = m_context.GetAllWarnings();
 		m_lastPrompt = BuildPrompt(currentWarnings);
 
-		std::cout << "[StateTaskFocus] LLM リクエスト送信中..." << std::endl;
-
 		if (!currentWarnings.empty())
 		{
-			const std::string prompt = BuildPrompt(currentWarnings);
 			std::cout << "[StateTaskFocus] LLM プロンプト組み立て完了" << std::endl;
-			std::cout << prompt << std::endl;
-
-			// 実際に API を呼び出して LUPUS の言葉を動的に生成
-			if (m_llmClient)
-			{
-				std::cout << "[StateTaskFocus] LLM リクエストを非同期で送信中..." << std::endl;
-
-				// 安全にバックグラウンドスレッドへ渡すため、必要な値だけをコピー(キャプチャ)する
-				std::string assistantName = m_assistantName;
-				ILLMClient* client = m_llmClient;
-
-				// 非同期スレッドを起動してHTTP通信を完全に分離する(detach で投げっぱなしにする)
-				std::thread([client, prompt, assistantName]() {
-					const std::string aiResponse = client->GenerateResponse(prompt);
-					std::cout << "\n--- [" << assistantName << " の回答] ---" << std::endl;
-					std::cout << aiResponse << std::endl;
-					std::cout << "---------------------------------\n" << std::endl;
-					}).detach();
-			}
+			std::cout << m_lastPrompt << std::endl;
+			LaunchLLMRequest(m_lastPrompt);
 		}
 	}
 
 
 	void StateTaskFocus::OnUpdate()
 	{
+		// 完了済みの LLM レスポンスがあれば先に出力する
+		FlushPendingResponse();
+
 		// 全モニターの警告を統合取得する
 		const std::vector<std::string> currentWarnings = m_context.GetAllWarnings();
 
@@ -84,27 +67,20 @@ namespace app
 		std::cout << newPrompt << std::endl;
 
 		NotifyUser(m_instantWarningMessage);
-
-		if (m_llmClient)
-		{
-			std::cout << "[StateTaskFocus] 状況の変化を検出。再リクエストを非同期で送信中..." << std::endl;
-
-			std::string assistantName = m_assistantName;
-			ILLMClient* client = m_llmClient;
-			std::string promptForThread = newPrompt;
-
-			std::thread([client, promptForThread, assistantName]() {
-				const std::string aiResponse = client->GenerateResponse(promptForThread);
-				std::cout << "\n--- [" << assistantName << " の回答(更新)] ---" << std::endl;
-				std::cout << aiResponse << std::endl;
-				std::cout << "-------------------------------------\n" << std::endl;
-				}).detach();
-		}
+		LaunchLLMRequest(newPrompt);
 	}
 
 
 	void StateTaskFocus::OnExit()
 	{
+		// 未完了の非同期リクエストが残っている場合は完了を待機してから抜ける。
+		// これにより ILLMClient の use-after-free を防止する。
+		if (m_pendingResponse.valid())
+		{
+			std::cout << "[StateTaskFocus] 非同期リクエストの完了を待機中..." << std::endl;
+			m_pendingResponse.wait();
+		}
+
 		m_lastPrompt.clear();
 		std::cout << "[StateTaskFocus] OnExit" << std::endl;
 	}
@@ -121,6 +97,53 @@ namespace app
 		// フェーズ2: std::cout へのログ出力のみ
 		// フェーズ3: ここに TTS / AudioPipeline への連携を追加する
 		std::cout << "[" << m_assistantName << "] " << message << std::endl;
+	}
+
+
+	void StateTaskFocus::FlushPendingResponse()
+	{
+		if (!m_pendingResponse.valid())
+		{
+			return;
+		}
+
+		// ノンブロッキングで ready チェックする(wait_for(0) はブロッキングしない)
+		if (m_pendingResponse.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+		{
+			return;
+		}
+
+		// 結果を取り出してログ出力する
+		const std::string aiResponse = m_pendingResponse.get();
+		std::cout << "\n--- [" << m_assistantName << " の回答] ---" << std::endl;
+		std::cout << aiResponse << std::endl;
+		std::cout << "---------------------------------\n" << std::endl;
+	}
+
+
+	void StateTaskFocus::LaunchLLMRequest(const std::string& prompt)
+	{
+		if (!m_llmClient)
+		{
+			return;
+		}
+
+		// 前のリクエストがまだ処理中の場合は新規起動をスキップする
+		if (m_pendingResponse.valid() &&
+			m_pendingResponse.wait_for(std::chrono::seconds(0)) != std::future_status::ready)
+		{
+			std::cout << "[StateTaskFocus] 前のリクエストが処理中のため新規リクエストをスキップします" << std::endl;
+			return;
+		}
+
+		std::cout << "[StateTaskFocus] LLM リクエストを非同期で送信中..." << std::endl;
+
+		// std::async で非同期起動する。Future で寿命を管理するため detach 不要。
+		// ILLMClient* の寿命は StateMachine が保証し、OnExit() の wait() で完了を担保する。
+		ILLMClient* client = m_llmClient;
+		m_pendingResponse = std::async(std::launch::async, [client, prompt]() -> std::string {
+			return client->GenerateResponse(prompt);
+			});
 	}
 
 
@@ -191,10 +214,6 @@ namespace app
 
 			prompt += "\n";
 		}
-
-		// ---------------------------------------------------------------
-		// フェーズ3: ここで API 呼び出しを行い m_deepReviewResult に格納する
-		// ---------------------------------------------------------------
 
 		return prompt;
 	}

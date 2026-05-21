@@ -110,7 +110,7 @@ namespace app
 				m_standbyMessage
 			);
 		case Hash32("TaskFocus"):
-			// SystemContext / systemPrompt / assistantName / instantWarningMessage を注入して生成する
+			// SystemContext / systemPrompt / assistantName / instantWarningMessage / llmClient を注入して生成する
 			return std::make_unique<StateTaskFocus>(
 				*m_context,
 				m_systemPrompt,
@@ -131,8 +131,8 @@ namespace app
 
 	std::string StateMachine::ResolveStateName(const SystemContext& context) const
 	{
-		// 外出先でもネットワークにつながっているなら作業モードへ遷移可能にする
-				// 完全に未接続の状態（オフライン）の時だけ Standby にする
+		// 完全に未接続の状態(オフライン)の時だけ Standby にする。
+		// 外出先でもネットワークにつながっているなら作業モードへ遷移可能にする。
 		if (!context.m_isConnected)
 		{
 			return "Standby";
