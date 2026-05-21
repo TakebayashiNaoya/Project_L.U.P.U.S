@@ -15,6 +15,7 @@ namespace app
 
 	/** 前方宣言 */
 	class IState;
+	class ILLMClient;
 
 
 	/**
@@ -34,6 +35,7 @@ namespace app
 		 * @param instantWarningMessage Level 1 即時警告メッセージ(StateTaskFocus に DI する)
 		 * @param standbyMessage        Standby 状態のメッセージ(StateStandby に DI する)
 		 * @param completionMessage     TaskCompleted 状態のメッセージ(StateTaskCompleted に DI する)
+		 * @param llmClient             LLM クライアントのユニークポインタ(StateTaskFocus に DI する)
 		 */
 		void Init(
 			SystemContext& context,
@@ -41,7 +43,8 @@ namespace app
 			const std::string& assistantName,
 			const std::string& instantWarningMessage,
 			const std::string& standbyMessage,
-			const std::string& completionMessage
+			const std::string& completionMessage,
+			std::unique_ptr<ILLMClient> llmClient
 		);
 
 		/**
@@ -95,6 +98,8 @@ namespace app
 		std::string m_standbyMessage;
 		/** TaskCompleted 状態のメッセージ(StateTaskCompleted に DI する) */
 		std::string m_completionMessage;
+		/** LLM クライアントのユニークポインタ(StateTaskFocus に DI する) */
+		std::unique_ptr<ILLMClient> m_llmClient;
 		/** 各 Monitor が更新する共有コンテキストへのポインタ(非所有) */
 		SystemContext* m_context = nullptr;
 		/** 現在の状態 */

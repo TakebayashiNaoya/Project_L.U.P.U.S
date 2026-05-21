@@ -8,6 +8,7 @@
 #include "StateStandby.h"
 #include "StateTaskFocus.h"
 #include "StateTaskCompleted.h"
+#include "Source/LLM/ILLMClient.h"
 
 
 namespace app
@@ -26,7 +27,8 @@ namespace app
 		const std::string& assistantName,
 		const std::string& instantWarningMessage,
 		const std::string& standbyMessage,
-		const std::string& completionMessage
+		const std::string& completionMessage,
+		std::unique_ptr<ILLMClient> llmClient
 	)
 	{
 		m_context = &context;
@@ -35,6 +37,7 @@ namespace app
 		m_instantWarningMessage = instantWarningMessage;
 		m_standbyMessage = standbyMessage;
 		m_completionMessage = completionMessage;
+		m_llmClient = std::move(llmClient);
 
 		// 初期状態は Standby
 		m_currentState = CreateState("Standby");
@@ -107,12 +110,13 @@ namespace app
 				m_standbyMessage
 			);
 		case Hash32("TaskFocus"):
-			// SystemContext / systemPrompt / assistantName / instantWarningMessage を注入して生成する
+			// SystemContext / systemPrompt / assistantName / instantWarningMessage / llmClient を注入して生成する
 			return std::make_unique<StateTaskFocus>(
 				*m_context,
 				m_systemPrompt,
 				m_assistantName,
-				m_instantWarningMessage
+				m_instantWarningMessage,
+				m_llmClient.get()
 			);
 		case Hash32("TaskCompleted"):
 			return std::make_unique<StateTaskCompleted>(
@@ -127,11 +131,14 @@ namespace app
 
 	std::string StateMachine::ResolveStateName(const SystemContext& context) const
 	{
-		if (!context.m_isAtHome)
+		// 完全に未接続の状態(オフライン)の時だけ Standby にする。
+		// 外出先でもネットワークにつながっているなら作業モードへ遷移可能にする。
+		if (!context.m_isConnected)
 		{
 			return "Standby";
 		}
 
+		// ネットワークにつながっているなら、在宅・外出に関わらずタスクや違反を確認する
 		bool hasCodeViolations = false;
 		{
 			std::lock_guard<std::mutex> lock(context.m_codeViolationsMutex);

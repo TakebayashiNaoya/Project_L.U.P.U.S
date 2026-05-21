@@ -156,6 +156,8 @@
     <ClInclude Include="Source\App\LupusApp.h" />
     <ClInclude Include="Source\Audio\AudioPipeline.h" />
     <ClInclude Include="Source\Audio\IAudioPipeline.h" />
+    <ClInclude Include="Source\LLM\GeminiClient.h" />
+    <ClInclude Include="Source\LLM\ILLMClient.h" />
     <ClInclude Include="Source\Monitor\CodeReviewMonitor\CodeReviewMonitor.h" />
     <ClInclude Include="Source\Monitor\DocumentReviewMonitor\DocumentReviewMonitor.h" />
     <ClInclude Include="Source\Monitor\DocumentReviewMonitor\IDocumentExtractor.h" />
@@ -176,6 +178,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\App\LupusApp.cpp" />
     <ClCompile Include="Source\Audio\AudioPipeline.cpp" />
+    <ClCompile Include="Source\LLM\GeminiClient.cpp" />
     <ClCompile Include="Source\Monitor\CodeReviewMonitor\CodeReviewMonitor.cpp" />
     <ClCompile Include="Source\Monitor\DocumentReviewMonitor\DocumentReviewMonitor.cpp" />
     <ClCompile Include="Source\Monitor\MonitorThread.cpp" />
