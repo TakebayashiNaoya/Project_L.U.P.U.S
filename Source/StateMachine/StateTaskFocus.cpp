@@ -42,7 +42,7 @@ namespace app
 			std::cout << "[StateTaskFocus] LLM プロンプト組み立て完了" << std::endl;
 			std::cout << prompt << std::endl;
 
-			// 実際に API を呼び出して LUPUS の言葉を動的に生成！
+			// 実際に API を呼び出して LUPUS の言葉を動的に生成
 			if (m_llmClient)
 			{
 				std::cout << "[StateTaskFocus] LLM リクエストを非同期で送信中..." << std::endl;
@@ -51,7 +51,7 @@ namespace app
 				std::string assistantName = m_assistantName;
 				ILLMClient* client = m_llmClient;
 
-				// 非同期スレッドを起動してHTTP通信を完全に分離する (detach で投げっぱなしにする)
+				// 非同期スレッドを起動してHTTP通信を完全に分離する(detach で投げっぱなしにする)
 				std::thread([client, prompt, assistantName]() {
 					const std::string aiResponse = client->GenerateResponse(prompt);
 					std::cout << "\n--- [" << assistantName << " の回答] ---" << std::endl;
@@ -71,7 +71,7 @@ namespace app
 		// 現在の状態でプロンプトを組み立てる
 		const std::string newPrompt = BuildPrompt(currentWarnings);
 
-		// 前回とプロンプトの内容が完全に同じ場合（タスクも警告も変化なし）はスキップする(デバウンス)
+		// 前回とプロンプトの内容が完全に同じ場合(タスクも警告も変化なし)はスキップする(デバウンス)
 		if (newPrompt == m_lastPrompt)
 		{
 			return;
@@ -134,7 +134,27 @@ namespace app
 			+ "\n\n";
 
 		// ---------------------------------------------------------------
-		// セクション2: 規約違反・ドキュメント変更の警告リスト
+		// セクション2: 現在の環境情報
+		// m_isAtHome の値に基づき、LLM が口調・距離感を切り替えるための
+		// コンテキスト情報を注入する。このフラグが profile.md の振る舞い定義と連動する。
+		// ---------------------------------------------------------------
+		prompt += std::string("=== CURRENT ENVIRONMENT ===\n");
+
+		if (m_context.m_isAtHome)
+		{
+			prompt += std::string("場所: 自宅 (At Home) - プライベート空間\n");
+			prompt += std::string("=> profile.md の「■ 場所が自宅の場合」の指示に従って応答してください。\n");
+		}
+		else
+		{
+			prompt += std::string("場所: 外出先 (Outside) - 他者の目あり\n");
+			prompt += std::string("=> profile.md の「■ 場所が外出先の場合」の指示に従って応答してください。\n");
+		}
+
+		prompt += "\n";
+
+		// ---------------------------------------------------------------
+		// セクション3: 規約違反・ドキュメント変更の警告リスト
 		// ---------------------------------------------------------------
 		prompt += std::string("=== LEVEL 1 WARNINGS (")
 			+ std::to_string(warnings.size())
@@ -148,7 +168,7 @@ namespace app
 		prompt += "\n";
 
 		// ---------------------------------------------------------------
-		// セクション3: Notion 未完了タスクリスト
+		// セクション4: Notion 未完了タスクリスト
 		// ---------------------------------------------------------------
 		std::vector<NotionTask> pendingTasks;
 		{
