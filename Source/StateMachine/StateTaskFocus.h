@@ -16,17 +16,18 @@ namespace app
 
 	/** 前方宣言 */
 	class ILLMClient;
+	class IAudioPipeline;
 
 
 	/**
 	 * @brief 未完了タスクあり・規約違反・姿勢悪化を検知した際の集中促進状態
 	 * @details コンストラクタで SystemContext / systemPrompt / assistantName /
-	 *          instantWarningMessage / llmClient を DI する。
+	 *          instantWarningMessage / llmClient / audioPipeline を DI する。
 	 *          OnUpdate() で BuildPrompt() の差分を比較し、変化があった場合のみ
 	 *          LLM リクエストを起動するデバウンス機構を持つ。
 	 *          LLM 呼び出しは std::async で非同期化し、std::future で寿命を管理する。
 	 *          OnExit() で未完了の非同期処理を wait() してから抜けるため、
-	 *          ILLMClient の use-after-free は発生しない。
+	 *          ILLMClient / IAudioPipeline の use-after-free は発生しない。
 	 */
 	class StateTaskFocus : public IState
 	{
@@ -41,13 +42,18 @@ namespace app
 		 *                              nullptr 許容(nullptr 時は LLM 呼び出しをスキップ)。
 		 *                              所有権は StateMachine が持ち、このクラスより長く生存する。
 		 *                              スレッド安全性は ILLMClient 実装側の責務とする。
+		 * @param audioPipeline         音声パイプラインへの非所有ポインタ。
+		 *                              nullptr 許容(nullptr 時は音声出力をスキップ)。
+		 *                              所有権は LupusApp が持ち、このクラスより長く生存する。
+		 *                              スレッド安全性は IAudioPipeline 実装側の責務とする。
 		 */
 		StateTaskFocus(
 			SystemContext& context,
 			const std::string& systemPrompt,
 			const std::string& assistantName,
 			const std::string& instantWarningMessage,
-			ILLMClient* llmClient
+			ILLMClient* llmClient,
+			IAudioPipeline* audioPipeline
 		);
 
 		void OnEnter() override;
@@ -59,8 +65,8 @@ namespace app
 	private:
 		/**
 		 * @brief ユーザーへの通知を行うカプセル化メソッド
-		 * @details 現時点では std::cout への出力のみ。
-		 *          将来的に TTS 等の音声パイプラインへの連携はここに追加する。
+		 * @details std::cout へのログ出力と、AudioPipeline 経由の音声再生を行う。
+		 *          即時警告メッセージの読み上げに使用する。
 		 * @param message 出力するメッセージ文字列
 		 */
 		void NotifyUser(const std::string& message) const;
@@ -73,16 +79,16 @@ namespace app
 		std::string BuildPrompt(const std::vector<std::string>& warnings) const;
 
 		/**
-		 * @brief 保留中の LLM レスポンスを取り出してログ出力する
-		 * @details m_pendingResponse が有効かつ ready な場合のみ出力する。
-		 *          ブロッキングしない(wait_for(0) で即時チェック)。
+		 * @brief 保留中の LLM レスポンスを取り出してログ出力・音声再生する
+		 * @details m_pendingResponse が ready 状態の場合のみ処理し、ブロッキングしない。
+		 *          AI レスポンス本文の音声読み上げはこのメソッドで行う。
 		 */
 		void FlushPendingResponse();
 
 		/**
-		 * @brief 非同期で LLM リクエストを起動し、m_pendingResponse に格納する
-		 * @details 前のリクエストが処理中の場合は新規起動をスキップする。
+		 * @brief LLM リクエストを std::async で非同期起動する
 		 * @param prompt 送信するプロンプト文字列
+		 * @details 前のリクエストがまだ処理中の場合は新規起動をスキップする。
 		 */
 		void LaunchLLMRequest(const std::string& prompt);
 
@@ -96,18 +102,13 @@ namespace app
 		const std::string m_assistantName;
 		/** Level 1 即時警告メッセージ */
 		const std::string m_instantWarningMessage;
-		/** LLM クライアントへの非所有ポインタ(所有権は StateMachine が持つ) */
+		/** LLM クライアントへの非所有ポインタ */
 		ILLMClient* m_llmClient = nullptr;
-		/**
-		 * @brief 前回 BuildPrompt() で生成したプロンプト文字列のキャッシュ
-		 * @details この文字列と比較して差分がなければ LLM 呼び出しをスキップする(デバウンス)
-		 */
+		/** 音声パイプラインへの非所有ポインタ */
+		IAudioPipeline* m_audioPipeline = nullptr;
+		/** デバウンス判定用の前回プロンプトキャッシュ */
 		std::string m_lastPrompt;
-		/**
-		 * @brief 非同期 LLM リクエストの Future
-		 * @details std::async で起動し、OnUpdate() で ready チェック、OnExit() で wait() する。
-		 *          有効な Future が存在する間は新規リクエストをスキップする。
-		 */
+		/** 非同期 LLM レスポンスの Future */
 		std::future<std::string> m_pendingResponse;
 	};
 

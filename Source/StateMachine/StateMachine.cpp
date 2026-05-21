@@ -28,7 +28,8 @@ namespace app
 		const std::string& instantWarningMessage,
 		const std::string& standbyMessage,
 		const std::string& completionMessage,
-		std::unique_ptr<ILLMClient> llmClient
+		std::unique_ptr<ILLMClient> llmClient,
+		IAudioPipeline* audioPipeline
 	)
 	{
 		m_context = &context;
@@ -38,6 +39,7 @@ namespace app
 		m_standbyMessage = standbyMessage;
 		m_completionMessage = completionMessage;
 		m_llmClient = std::move(llmClient);
+		m_audioPipeline = audioPipeline;
 
 		// 初期状態は Standby
 		m_currentState = CreateState("Standby");
@@ -107,21 +109,24 @@ namespace app
 		case Hash32("Standby"):
 			return std::make_unique<StateStandby>(
 				m_assistantName,
-				m_standbyMessage
+				m_standbyMessage,
+				m_audioPipeline
 			);
 		case Hash32("TaskFocus"):
-			// SystemContext / systemPrompt / assistantName / instantWarningMessage / llmClient を注入して生成する
+			// SystemContext / systemPrompt / assistantName / instantWarningMessage / llmClient / audioPipeline を注入して生成する
 			return std::make_unique<StateTaskFocus>(
 				*m_context,
 				m_systemPrompt,
 				m_assistantName,
 				m_instantWarningMessage,
-				m_llmClient.get()
+				m_llmClient.get(),
+				m_audioPipeline
 			);
 		case Hash32("TaskCompleted"):
 			return std::make_unique<StateTaskCompleted>(
 				m_assistantName,
-				m_completionMessage
+				m_completionMessage,
+				m_audioPipeline
 			);
 		default:
 			return nullptr;

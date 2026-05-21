@@ -172,6 +172,7 @@
     <ClInclude Include="Source\StateMachine\StateStandby.h" />
     <ClInclude Include="Source\StateMachine\StateTaskCompleted.h" />
     <ClInclude Include="Source\StateMachine\StateTaskFocus.h" />
+    <ClInclude Include="Source\Util\TextSplitter.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
@@ -189,6 +190,7 @@
     <ClCompile Include="Source\StateMachine\StateStandby.cpp" />
     <ClCompile Include="Source\StateMachine\StateTaskCompleted.cpp" />
     <ClCompile Include="Source\StateMachine\StateTaskFocus.cpp" />
+    <ClCompile Include="Source\Util\TextSplitter.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

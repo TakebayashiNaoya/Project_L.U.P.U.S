@@ -30,6 +30,13 @@ namespace app
 		 * @return 認識テキスト文字列
 		 */
 		virtual std::string GetLastTranscription() const = 0;
+
+		/**
+		 * @brief テキストを音声再生キューに追加する
+		 * @param text 読み上げるテキスト文字列
+		 * @details スレッドセーフであること。実装クラスが排他制御の責務を持つ。
+		 */
+		virtual void Speak(const std::string& text) = 0;
 	};
 
 
