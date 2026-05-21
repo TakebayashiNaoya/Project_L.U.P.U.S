@@ -13,6 +13,10 @@ namespace app
 {
 
 
+	/** 前方宣言 */
+	class ILLMClient;
+
+
 	/**
 	 * @brief 未完了タスクあり・規約違反・姿勢悪化を検知した際の集中促進状態
 	 * @details コンストラクタで SystemContext / systemPrompt / assistantName /
@@ -34,7 +38,8 @@ namespace app
 			SystemContext& context,
 			const std::string& systemPrompt,
 			const std::string& assistantName,
-			const std::string& instantWarningMessage
+			const std::string& instantWarningMessage,
+			ILLMClient* llmClient
 		);
 
 		void OnEnter() override;
@@ -69,6 +74,8 @@ namespace app
 		const std::string m_assistantName;
 		/** Level 1 即時警告メッセージ */
 		const std::string m_instantWarningMessage;
+		/** LLM クライアントへの非所有ポインタ*/
+		ILLMClient* m_llmClient = nullptr;
 		/**
 		 * @brief 前回 OnUpdate() で出力した警告リストのキャッシュ
 		 * @details GetAllWarnings() の結果と比較してデバウンスを実現する

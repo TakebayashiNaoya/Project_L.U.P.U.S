@@ -82,6 +82,14 @@ namespace app
 		std::string GetCompletionMessage() const;
 
 		/**
+		 * @brief secrets.json から Gemini API キーを取得
+		 * @details secrets.json の "gemini_api_key" キーの値を返す。
+		 *			未設定の場合は空文字列を返す。
+		 * @return Gemini API キー文字列
+		 */
+		std::string GetGeminiApiKey() const;
+
+		/**
 		 * @brief プロファイルが正常に読み込まれているか確認する
 		 * @return 読み込み済みの場合 true
 		 */

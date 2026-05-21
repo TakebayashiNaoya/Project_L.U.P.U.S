@@ -34,6 +34,9 @@
     <Filter Include="Source\Monitor\DocumentReviewMonitor">
       <UniqueIdentifier>{f3d2adb9-1e58-40f4-8e06-c448004e282e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\LLM">
+      <UniqueIdentifier>{a80f1a7f-b63c-483b-ba7d-6c7985af23bf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="external\CRC32.h">
@@ -94,6 +97,12 @@
     <ClInclude Include="Source\Profile\ProfileManager.h">
       <Filter>Source\Profile</Filter>
     </ClInclude>
+    <ClInclude Include="Source\LLM\ILLMClient.h">
+      <Filter>Source\LLM</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\LLM\GeminiClient.h">
+      <Filter>Source\LLM</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\App\LupusApp.cpp">
@@ -133,6 +142,9 @@
     </ClCompile>
     <ClCompile Include="Source\Profile\ProfileManager.cpp">
       <Filter>Source\Profile</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\LLM\GeminiClient.cpp">
+      <Filter>Source\LLM</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

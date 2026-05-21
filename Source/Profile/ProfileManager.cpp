@@ -114,6 +114,17 @@ namespace app
 	}
 
 
+	// 末尾付近に追加
+	std::string ProfileManager::GetGeminiApiKey() const
+	{
+		if (m_profile.contains("gemini_api_key") && m_profile["gemini_api_key"].is_string())
+		{
+			return m_profile["gemini_api_key"].get<std::string>();
+		}
+		return "";
+	}
+
+
 	bool ProfileManager::IsLoaded() const
 	{
 		return m_isLoaded;

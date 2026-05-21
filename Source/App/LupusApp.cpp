@@ -12,6 +12,8 @@
 #include "Source/Monitor/CodeReviewMonitor/CodeReviewMonitor.h"
 #include "Source/Monitor/DocumentReviewMonitor/DocumentReviewMonitor.h"
 #include "Source/Audio/AudioPipeline.h"
+#include "Source/LLM/ILLMClient.h"
+#include "Source/LLM/GeminiClient.h"
 
 
 namespace app
@@ -45,16 +47,22 @@ namespace app
 		const std::string standbyMessage = m_profileManager->GetStandbyMessage();
 		const std::string completionMessage = m_profileManager->GetCompletionMessage();
 
+		// APIキーの取得とLLMクライアントの生成
+		const std::string geminiApiKey = m_profileManager->GetGeminiApiKey();
+		std::unique_ptr<ILLMClient> llmClient = std::make_unique<GeminiClient>(geminiApiKey);
+
 		// ステートマシンの初期化
 		// 全 State が必要とする文字列を ProfileManager から受け取り、StateMachine 経由で DI する
 		m_stateMachine = std::make_unique<StateMachine>();
+		// StateMachine の初期化
 		m_stateMachine->Init(
 			m_context,
 			systemPrompt,
 			assistantName,
 			instantWarningMessage,
 			standbyMessage,
-			completionMessage
+			completionMessage,
+			std::move(llmClient)
 		);
 
 		// 監視スレッドの初期化

@@ -4,6 +4,7 @@
  */
 #include "stdafx.h"
 #include "StateTaskFocus.h"
+#include "Source/LLM/ILLMClient.h"
 
 
 namespace app
@@ -12,12 +13,14 @@ namespace app
 		SystemContext& context,
 		const std::string& systemPrompt,
 		const std::string& assistantName,
-		const std::string& instantWarningMessage
+		const std::string& instantWarningMessage,
+		ILLMClient* llmClient
 	)
 		: m_context(context)
 		, m_systemPrompt(systemPrompt)
 		, m_assistantName(assistantName)
 		, m_instantWarningMessage(instantWarningMessage)
+		, m_llmClient(llmClient)
 	{}
 
 
@@ -31,11 +34,31 @@ namespace app
 		const std::vector<std::string> currentWarnings = m_context.GetAllWarnings();
 		m_lastPrompt = BuildPrompt(currentWarnings);
 
+		std::cout << "[StateTaskFocus] LLM リクエスト送信中..." << std::endl;
+
 		if (!currentWarnings.empty())
 		{
 			const std::string prompt = BuildPrompt(currentWarnings);
 			std::cout << "[StateTaskFocus] LLM プロンプト組み立て完了" << std::endl;
 			std::cout << prompt << std::endl;
+
+			// 実際に API を呼び出して LUPUS の言葉を動的に生成！
+			if (m_llmClient)
+			{
+				std::cout << "[StateTaskFocus] LLM リクエストを非同期で送信中..." << std::endl;
+
+				// 安全にバックグラウンドスレッドへ渡すため、必要な値だけをコピー(キャプチャ)する
+				std::string assistantName = m_assistantName;
+				ILLMClient* client = m_llmClient;
+
+				// 非同期スレッドを起動してHTTP通信を完全に分離する (detach で投げっぱなしにする)
+				std::thread([client, prompt, assistantName]() {
+					const std::string aiResponse = client->GenerateResponse(prompt);
+					std::cout << "\n--- [" << assistantName << " の回答] ---" << std::endl;
+					std::cout << aiResponse << std::endl;
+					std::cout << "---------------------------------\n" << std::endl;
+					}).detach();
+			}
 		}
 	}
 
@@ -44,22 +67,39 @@ namespace app
 	{
 		// 全モニターの警告を統合取得する
 		const std::vector<std::string> currentWarnings = m_context.GetAllWarnings();
+
+		// 現在の状態でプロンプトを組み立てる
 		const std::string newPrompt = BuildPrompt(currentWarnings);
 
-		// プロンプトの内容（警告やタスク）に変化がない場合は出力をスキップする(完全なデバウンス)
+		// 前回とプロンプトの内容が完全に同じ場合（タスクも警告も変化なし）はスキップする(デバウンス)
 		if (newPrompt == m_lastPrompt)
 		{
 			return;
 		}
 
+		// 差分があった場合はキャッシュを更新する
 		m_lastPrompt = newPrompt;
 
-		// 警告内容が変化したため LLM プロンプトを再組み立てして出力する
 		std::cout << "[StateTaskFocus] LLM プロンプト再組み立て完了(差分検出)" << std::endl;
-		std::cout << m_lastPrompt << std::endl;
+		std::cout << newPrompt << std::endl;
 
-		// ユーザーへの即時通知
 		NotifyUser(m_instantWarningMessage);
+
+		if (m_llmClient)
+		{
+			std::cout << "[StateTaskFocus] 状況の変化を検出。再リクエストを非同期で送信中..." << std::endl;
+
+			std::string assistantName = m_assistantName;
+			ILLMClient* client = m_llmClient;
+			std::string promptForThread = newPrompt;
+
+			std::thread([client, promptForThread, assistantName]() {
+				const std::string aiResponse = client->GenerateResponse(promptForThread);
+				std::cout << "\n--- [" << assistantName << " の回答(更新)] ---" << std::endl;
+				std::cout << aiResponse << std::endl;
+				std::cout << "-------------------------------------\n" << std::endl;
+				}).detach();
+		}
 	}
 
 

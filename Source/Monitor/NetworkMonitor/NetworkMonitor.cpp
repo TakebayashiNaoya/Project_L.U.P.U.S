@@ -80,7 +80,7 @@ namespace app
 		// ---------------------------------------------------------------
 		context.m_isAtHome = true;
 		context.m_isConnected = true;
-		std::cout << "[NetworkMonitor][DEBUG] 在宅フラグを強制的に true に設定しました" << std::endl;
+		//std::cout << "[NetworkMonitor][DEBUG] 在宅フラグを強制的に true に設定しました" << std::endl;
 		// ---------------------------------------------------------------
 	}
 

@@ -8,6 +8,7 @@
 #include "StateStandby.h"
 #include "StateTaskFocus.h"
 #include "StateTaskCompleted.h"
+#include "Source/LLM/ILLMClient.h"
 
 
 namespace app
@@ -26,7 +27,8 @@ namespace app
 		const std::string& assistantName,
 		const std::string& instantWarningMessage,
 		const std::string& standbyMessage,
-		const std::string& completionMessage
+		const std::string& completionMessage,
+		std::unique_ptr<ILLMClient> llmClient
 	)
 	{
 		m_context = &context;
@@ -35,6 +37,7 @@ namespace app
 		m_instantWarningMessage = instantWarningMessage;
 		m_standbyMessage = standbyMessage;
 		m_completionMessage = completionMessage;
+		m_llmClient = std::move(llmClient);
 
 		// 初期状態は Standby
 		m_currentState = CreateState("Standby");
@@ -112,7 +115,8 @@ namespace app
 				*m_context,
 				m_systemPrompt,
 				m_assistantName,
-				m_instantWarningMessage
+				m_instantWarningMessage,
+				m_llmClient.get()
 			);
 		case Hash32("TaskCompleted"):
 			return std::make_unique<StateTaskCompleted>(
