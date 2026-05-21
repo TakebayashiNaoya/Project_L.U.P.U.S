@@ -11,7 +11,7 @@ namespace app
 
 
 	/**
-	 * @brief 各監視モジュール（カメラ・ネットワーク・Notion等）が実装すべきインターフェース
+	 * @brief 各監視モジュール(カメラ・ネットワーク・Notion等)が実装すべきインターフェース
 	 */
 	class IMonitor
 	{
@@ -38,6 +38,14 @@ namespace app
 		 * @return ネットワーク接続時のみ動作する場合 true。デフォルトは false
 		 */
 		virtual bool RequiresNetwork() const { return false; }
+
+		/**
+		 * @brief 在宅時のみ動作するモジュールかどうかを返す
+		 * @details true を返すモジュールは、context.m_isAtHome が false の場合に
+		 *          MonitorThread からの Observe() 呼び出しをスキップできる
+		 * @return 在宅時のみ動作する場合 true。デフォルトは false
+		 */
+		virtual bool RequiresAtHome() const { return false; }
 	};
 
 

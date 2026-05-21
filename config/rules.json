@@ -1,0 +1,14 @@
+{
+  "code_review_rules": [
+    {
+      "name": "bool_prefix",
+      "pattern": "bool\\s+m_(?!(is|has|can)[A-Z_])\\w+",
+      "message": "bool 型のメンバ変数は m_is / m_has / m_can で始める必要があります。"
+    },
+    {
+      "name": "member_prefix",
+      "pattern": "^\\s+(int|float|double|char|std::string|std::vector|std::unique_ptr|std::shared_ptr)\\s+(?!m_)\\w+[^(]",
+      "message": "メンバ変数には m_ プレフィックスが必要です。"
+    }
+  ]
+}

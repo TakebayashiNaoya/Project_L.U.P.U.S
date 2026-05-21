@@ -79,6 +79,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -99,6 +100,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -117,6 +119,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -137,6 +140,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>Use</PrecompiledHeader>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,12 +156,15 @@
     <ClInclude Include="Source\App\LupusApp.h" />
     <ClInclude Include="Source\Audio\AudioPipeline.h" />
     <ClInclude Include="Source\Audio\IAudioPipeline.h" />
+    <ClInclude Include="Source\Monitor\CodeReviewMonitor\CodeReviewMonitor.h" />
+    <ClInclude Include="Source\Monitor\DocumentReviewMonitor\DocumentReviewMonitor.h" />
+    <ClInclude Include="Source\Monitor\DocumentReviewMonitor\IDocumentExtractor.h" />
     <ClInclude Include="Source\Monitor\IMonitor.h" />
     <ClInclude Include="Source\Monitor\MonitorThread.h" />
     <ClInclude Include="Source\Monitor\NetworkMonitor\NetworkMonitor.h" />
     <ClInclude Include="Source\Monitor\NotionMonitor\NotionMonitor.h" />
     <ClInclude Include="Source\Monitor\SystemContext.h" />
-    <ClInclude Include="Source\Profile\ProfileLoader.h" />
+    <ClInclude Include="Source\Profile\ProfileManager.h" />
     <ClInclude Include="Source\StateMachine\IState.h" />
     <ClInclude Include="Source\StateMachine\StateMachine.h" />
     <ClInclude Include="Source\StateMachine\StateStandby.h" />
@@ -169,10 +176,12 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\App\LupusApp.cpp" />
     <ClCompile Include="Source\Audio\AudioPipeline.cpp" />
+    <ClCompile Include="Source\Monitor\CodeReviewMonitor\CodeReviewMonitor.cpp" />
+    <ClCompile Include="Source\Monitor\DocumentReviewMonitor\DocumentReviewMonitor.cpp" />
     <ClCompile Include="Source\Monitor\MonitorThread.cpp" />
     <ClCompile Include="Source\Monitor\NetworkMonitor\NetworkMonitor.cpp" />
     <ClCompile Include="Source\Monitor\NotionMonitor\NotionMonitor.cpp" />
-    <ClCompile Include="Source\Profile\ProfileLoader.cpp" />
+    <ClCompile Include="Source\Profile\ProfileManager.cpp" />
     <ClCompile Include="Source\StateMachine\StateMachine.cpp" />
     <ClCompile Include="Source\StateMachine\StateStandby.cpp" />
     <ClCompile Include="Source\StateMachine\StateTaskCompleted.cpp" />

@@ -3,8 +3,9 @@
  * @brief アプリケーション統括クラス
  */
 #pragma once
-#include <memory>
 #include <atomic>
+#include <memory>
+#include "Source/Monitor/SystemContext.h"
 
 
 namespace app
@@ -12,7 +13,7 @@ namespace app
 
 
 	/** 前方宣言 */
-	class ProfileLoader;
+	class ProfileManager;
 	class StateMachine;
 	class MonitorThread;
 	class AudioPipeline;
@@ -33,7 +34,7 @@ namespace app
 		 */
 		bool Init();
 
-		/** @brief メインループを実行する（ブロッキング） */
+		/** @brief メインループを実行する(ブロッキング) */
 		void Run();
 
 		/** @brief アプリケーションを終了する */
@@ -41,14 +42,16 @@ namespace app
 
 
 	private:
-		/** システムプロファイルの読み込みクラス */
-		std::unique_ptr<ProfileLoader> m_profileLoader;
+		/** 各 Monitor が更新し StateMachine と State が参照する共有コンテキスト */
+		SystemContext m_context;
+		/** 設定ファイルの中央管理クラス */
+		std::unique_ptr<ProfileManager> m_profileManager;
 		/** ステートマシン管理クラス */
-		std::unique_ptr<StateMachine>  m_stateMachine;
+		std::unique_ptr<StateMachine>   m_stateMachine;
 		/** 監視スレッド統括クラス */
-		std::unique_ptr<MonitorThread> m_monitorThread;
+		std::unique_ptr<MonitorThread>  m_monitorThread;
 		/** 音声パイプラインクラス */
-		std::unique_ptr<AudioPipeline> m_audioPipeline;
+		std::unique_ptr<AudioPipeline>  m_audioPipeline;
 		/** アプリケーションの実行状態 */
 		std::atomic<bool> m_isRunning{ false };
 	};

@@ -29,9 +29,19 @@ namespace app
 
 		/**
 		 * @brief ステートマシンを初期化する
-		 * @param profile 読み込み済みのシステムプロファイル
+		 * @param context              各 Monitor が更新する共有コンテキスト(State に DI する)
+		 * @param profile              読み込み済みのシステムプロファイル
+		 * @param systemPrompt         LLM 連携用のシステムプロンプト文字列
+		 * @param assistantName        アシスタント名(persona.json の assistant_name)
+		 * @param instantWarningMessage Level 1 即時警告メッセージ(persona.json の instant_warning_message)
 		 */
-		void Init(const nlohmann::json& profile);
+		void Init(
+			SystemContext& context,
+			const nlohmann::json& profile,
+			const std::string& systemPrompt,
+			const std::string& assistantName,
+			const std::string& instantWarningMessage
+		);
 
 		/**
 		 * @brief 現在の状態の OnUpdate を呼び出す
@@ -40,15 +50,13 @@ namespace app
 
 		/**
 		 * @brief SystemContext を参照して自律的に遷移先を判断し、必要なら遷移する
-		 * @details センサー駆動による状態遷移はこのメソッドを経由する
 		 * @param context 各 Monitor が更新した共有コンテキスト
 		 */
 		void Evaluate(const SystemContext& context);
 
 		/**
-		 * @brief 指定した状態名に強制遷移する（スレッドセーフ）
-		 * @details 音声コマンドや UI など、外部からの明示的な遷移要求に使用する
-		 * @param stateName 遷移先の状態名（"Standby" / "TaskFocus" / "TaskCompleted"）
+		 * @brief 指定した状態名に強制遷移する(スレッドセーフ)
+		 * @param stateName 遷移先の状態名("Standby" / "TaskFocus" / "TaskCompleted")
 		 */
 		void Transition(const std::string& stateName);
 
@@ -61,7 +69,7 @@ namespace app
 
 	private:
 		/**
-		 * @brief 状態名からIStateインスタンスを生成して返す
+		 * @brief 状態名から IState インスタンスを生成して返す
 		 * @param stateName 状態名
 		 * @return IState のユニークポインタ
 		 */
@@ -78,9 +86,17 @@ namespace app
 	private:
 		/** 読み込み済みのシステムプロファイル */
 		nlohmann::json m_profile;
+		/** LLM 連携用のシステムプロンプト文字列 */
+		std::string m_systemPrompt;
+		/** アシスタント名(StateTaskFocus に DI する) */
+		std::string m_assistantName;
+		/** Level 1 即時警告メッセージ(StateTaskFocus に DI する) */
+		std::string m_instantWarningMessage;
+		/** 各 Monitor が更新する共有コンテキストへのポインタ(非所有) */
+		SystemContext* m_context = nullptr;
 		/** 現在の状態 */
 		std::unique_ptr<IState> m_currentState;
-		/** 状態遷移の排他制御用ミューテックス */
+		/** 状態遷移の排他制御用 Mutex */
 		mutable std::mutex m_mutex;
 	};
 
