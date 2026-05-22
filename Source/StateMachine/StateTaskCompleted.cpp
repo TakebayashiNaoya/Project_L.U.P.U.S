@@ -4,16 +4,19 @@
  */
 #include "stdafx.h"
 #include "StateTaskCompleted.h"
+#include "Source/Audio/IAudioPipeline.h"
 
 
 namespace app
 {
 	StateTaskCompleted::StateTaskCompleted(
 		const std::string& assistantName,
-		const std::string& completionMessage
+		const std::string& completionMessage,
+		IAudioPipeline* audioPipeline
 	)
 		: m_assistantName(assistantName)
 		, m_completionMessage(completionMessage)
+		, m_audioPipeline(audioPipeline)
 	{}
 
 
@@ -53,9 +56,12 @@ namespace app
 
 	void StateTaskCompleted::NotifyUser(const std::string& message) const
 	{
-		// フェーズ2: std::cout へのログ出力のみ
-		// フェーズ3: ここに TTS / AudioPipeline への連携を追加する
 		std::cout << "[" << m_assistantName << "] " << message << std::endl;
+
+		if (m_audioPipeline)
+		{
+			m_audioPipeline->Speak(message);
+		}
 	}
 
 

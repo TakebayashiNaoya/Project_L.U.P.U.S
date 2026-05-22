@@ -51,6 +51,10 @@ namespace app
 		const std::string geminiApiKey = m_profileManager->GetGeminiApiKey();
 		std::unique_ptr<ILLMClient> llmClient = std::make_unique<GeminiClient>(geminiApiKey);
 
+		// 音声パイプラインの初期化
+		// StateMachine::Init() に DI するため、ステートマシンより先に生成する
+		m_audioPipeline = std::make_unique<AudioPipeline>();
+
 		// ステートマシンの初期化
 		// 全 State が必要とする文字列を ProfileManager から受け取り、StateMachine 経由で DI する
 		m_stateMachine = std::make_unique<StateMachine>();
@@ -62,7 +66,8 @@ namespace app
 			instantWarningMessage,
 			standbyMessage,
 			completionMessage,
-			std::move(llmClient)
+			std::move(llmClient),
+			m_audioPipeline.get()
 		);
 
 		// 監視スレッドの初期化
@@ -79,9 +84,6 @@ namespace app
 		m_monitorThread->AddMonitor(std::make_unique<CodeReviewMonitor>(profile));
 		// DocumentReviewMonitor: 常時動作。差分スキャンにより在宅外でも低コストで動作する
 		m_monitorThread->AddMonitor(std::make_unique<DocumentReviewMonitor>(profile));
-
-		// 音声パイプラインの初期化
-		m_audioPipeline = std::make_unique<AudioPipeline>();
 
 		std::cout << "[LupusApp] 初期化が完了しました" << std::endl;
 		return true;

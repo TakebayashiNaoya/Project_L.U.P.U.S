@@ -37,6 +37,9 @@
     <Filter Include="Source\LLM">
       <UniqueIdentifier>{a80f1a7f-b63c-483b-ba7d-6c7985af23bf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Util">
+      <UniqueIdentifier>{aef18a38-7d37-4e97-9505-aced64042bf6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="external\CRC32.h">
@@ -103,6 +106,9 @@
     <ClInclude Include="Source\LLM\GeminiClient.h">
       <Filter>Source\LLM</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Util\TextSplitter.h">
+      <Filter>Source\Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\App\LupusApp.cpp">
@@ -145,6 +151,9 @@
     </ClCompile>
     <ClCompile Include="Source\LLM\GeminiClient.cpp">
       <Filter>Source\LLM</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Util\TextSplitter.cpp">
+      <Filter>Source\Util</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

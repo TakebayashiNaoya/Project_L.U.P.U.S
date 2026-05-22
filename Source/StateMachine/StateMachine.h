@@ -16,6 +16,7 @@ namespace app
 	/** 前方宣言 */
 	class IState;
 	class ILLMClient;
+	class IAudioPipeline;
 
 
 	/**
@@ -36,6 +37,8 @@ namespace app
 		 * @param standbyMessage        Standby 状態のメッセージ(StateStandby に DI する)
 		 * @param completionMessage     TaskCompleted 状態のメッセージ(StateTaskCompleted に DI する)
 		 * @param llmClient             LLM クライアントのユニークポインタ(StateTaskFocus に DI する)
+		 * @param audioPipeline         音声パイプラインへの非所有ポインタ(全 State に DI する)
+		 *                              nullptr 許容。所有権は LupusApp が持ち、このクラスより長く生存する。
 		 */
 		void Init(
 			SystemContext& context,
@@ -44,7 +47,8 @@ namespace app
 			const std::string& instantWarningMessage,
 			const std::string& standbyMessage,
 			const std::string& completionMessage,
-			std::unique_ptr<ILLMClient> llmClient
+			std::unique_ptr<ILLMClient> llmClient,
+			IAudioPipeline* audioPipeline
 		);
 
 		/**
@@ -102,6 +106,8 @@ namespace app
 		std::unique_ptr<ILLMClient> m_llmClient;
 		/** 各 Monitor が更新する共有コンテキストへのポインタ(非所有) */
 		SystemContext* m_context = nullptr;
+		/** 音声パイプラインへの非所有ポインタ(全 State に DI する) */
+		IAudioPipeline* m_audioPipeline = nullptr;
 		/** 現在の状態 */
 		std::unique_ptr<IState> m_currentState;
 		/** 状態遷移の排他制御用 Mutex */

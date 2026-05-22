@@ -4,7 +4,12 @@
  */
 #include "stdafx.h"
 #include "StateTaskFocus.h"
+#include <mutex>
+#include <string_view>
+#include "Source/Audio/IAudioPipeline.h"
 #include "Source/LLM/ILLMClient.h"
+#include "Source/Monitor/SystemContext.h"
+#include "Source/Util/TextSplitter.h"
 
 
 namespace app
@@ -14,13 +19,15 @@ namespace app
 		const std::string& systemPrompt,
 		const std::string& assistantName,
 		const std::string& instantWarningMessage,
-		ILLMClient* llmClient
+		ILLMClient* llmClient,
+		IAudioPipeline* audioPipeline
 	)
 		: m_context(context)
 		, m_systemPrompt(systemPrompt)
 		, m_assistantName(assistantName)
 		, m_instantWarningMessage(instantWarningMessage)
 		, m_llmClient(llmClient)
+		, m_audioPipeline(audioPipeline)
 	{}
 
 
@@ -45,7 +52,7 @@ namespace app
 
 	void StateTaskFocus::OnUpdate()
 	{
-		// 完了済みの LLM レスポンスがあれば先に出力する
+		// 完了済みの LLM レスポンスがあれば先に出力・再生する
 		FlushPendingResponse();
 
 		// 全モニターの警告を統合取得する
@@ -74,7 +81,7 @@ namespace app
 	void StateTaskFocus::OnExit()
 	{
 		// 未完了の非同期リクエストが残っている場合は完了を待機してから抜ける。
-		// これにより ILLMClient の use-after-free を防止する。
+		// これにより ILLMClient / IAudioPipeline の use-after-free を防止する。
 		if (m_pendingResponse.valid())
 		{
 			std::cout << "[StateTaskFocus] 非同期リクエストの完了を待機中..." << std::endl;
@@ -94,9 +101,12 @@ namespace app
 
 	void StateTaskFocus::NotifyUser(const std::string& message) const
 	{
-		// フェーズ2: std::cout へのログ出力のみ
-		// フェーズ3: ここに TTS / AudioPipeline への連携を追加する
 		std::cout << "[" << m_assistantName << "] " << message << std::endl;
+
+		if (m_audioPipeline)
+		{
+			m_audioPipeline->Speak(message);
+		}
 	}
 
 
@@ -118,6 +128,25 @@ namespace app
 		std::cout << "\n--- [" << m_assistantName << " の回答] ---" << std::endl;
 		std::cout << aiResponse << std::endl;
 		std::cout << "---------------------------------\n" << std::endl;
+
+		// AI レスポンスをチャンクに分割してから順次キューに積む。
+		// 分割された短いチャンクを1件ずつ Speak() に渡すことで、
+		// TTS API の長文エラーを回避し、文頭から順次再生を開始できる。
+		// m_audioPipeline は OnExit() の wait() によって
+		// 非同期処理完了前に破棄されないことが保証される。
+		// "[GeminiClient]" で始まる文字列は LLM クライアントのエラーメッセージのため、
+		// ログ出力のみ行い音声再生には渡さない。
+		constexpr std::string_view kLlmErrorPrefix = "[GeminiClient]";
+		const bool isLlmError = aiResponse.rfind(kLlmErrorPrefix, 0) == 0;
+
+		if (m_audioPipeline && !isLlmError)
+		{
+			const std::vector<std::string> chunks = TextSplitter::SplitIntoChunks(aiResponse);
+			for (const auto& chunk : chunks)
+			{
+				m_audioPipeline->Speak(chunk);
+			}
+		}
 	}
 
 
@@ -140,6 +169,8 @@ namespace app
 
 		// std::async で非同期起動する。Future で寿命を管理するため detach 不要。
 		// ILLMClient* の寿命は StateMachine が保証し、OnExit() の wait() で完了を担保する。
+		// IAudioPipeline* の寿命は LupusApp が保証し、同様に OnExit() の wait() で担保する。
+		// どちらのポインタも StateTaskFocus の生存期間中は不変のため、ラムダキャプチャは安全。
 		ILLMClient* client = m_llmClient;
 		m_pendingResponse = std::async(std::launch::async, [client, prompt]() -> std::string {
 			return client->GenerateResponse(prompt);
@@ -152,26 +183,24 @@ namespace app
 		// ---------------------------------------------------------------
 		// セクション1: システムプロンプト(アシスタントのペルソナ定義)
 		// ---------------------------------------------------------------
-		std::string prompt = std::string("=== SYSTEM PROMPT ===\n")
-			+ m_systemPrompt
-			+ "\n\n";
+		std::string prompt = m_systemPrompt + "\n\n";
 
 		// ---------------------------------------------------------------
 		// セクション2: 現在の環境情報
 		// m_isAtHome の値に基づき、LLM が口調・距離感を切り替えるための
 		// コンテキスト情報を注入する。このフラグが profile.md の振る舞い定義と連動する。
 		// ---------------------------------------------------------------
-		prompt += std::string("=== CURRENT ENVIRONMENT ===\n");
+		prompt += "=== CURRENT ENVIRONMENT ===\n";
 
 		if (m_context.m_isAtHome)
 		{
-			prompt += std::string("場所: 自宅 (At Home) - プライベート空間\n");
-			prompt += std::string("=> profile.md の「■ 場所が自宅の場合」の指示に従って応答してください。\n");
+			prompt += "場所: 自宅 (At Home) - プライベート空間\n";
+			prompt += "=> profile.md の「■ 場所が自宅の場合」の指示に従って応答してください。\n";
 		}
 		else
 		{
-			prompt += std::string("場所: 外出先 (Outside) - 他者の目あり\n");
-			prompt += std::string("=> profile.md の「■ 場所が外出先の場合」の指示に従って応答してください。\n");
+			prompt += "場所: 外出先 (Outside) - 他者の目あり\n";
+			prompt += "=> profile.md の「■ 場所が外出先の場合」の指示に従って応答してください。\n";
 		}
 
 		prompt += "\n";
@@ -179,13 +208,13 @@ namespace app
 		// ---------------------------------------------------------------
 		// セクション3: 規約違反・ドキュメント変更の警告リスト
 		// ---------------------------------------------------------------
-		prompt += std::string("=== LEVEL 1 WARNINGS (")
+		prompt += "=== LEVEL 1 WARNINGS ("
 			+ std::to_string(warnings.size())
 			+ " 件) ===\n";
 
 		for (const auto& warning : warnings)
 		{
-			prompt += std::string("- ") + warning + "\n";
+			prompt += "- " + warning + "\n";
 		}
 
 		prompt += "\n";
@@ -199,17 +228,17 @@ namespace app
 			pendingTasks = m_context.m_pendingTasks;
 		}
 
-		prompt += std::string("=== PENDING TASKS (")
+		prompt += "=== PENDING TASKS ("
 			+ std::to_string(pendingTasks.size())
 			+ " 件) ===\n";
 
 		for (const auto& task : pendingTasks)
 		{
-			prompt += std::string("- [") + task.m_status + "] " + task.m_title;
+			prompt += "- [" + task.m_status + "] " + task.m_title;
 
 			if (!task.m_dueDate.empty())
 			{
-				prompt += std::string(" (期限: ") + task.m_dueDate + ")";
+				prompt += " (期限: " + task.m_dueDate + ")";
 			}
 
 			prompt += "\n";
