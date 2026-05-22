@@ -10,9 +10,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <windows.h>
-#include <mmsystem.h>
-#include <winhttp.h>
 #include "Source/Audio/IAudioPipeline.h"
 
 

@@ -1,9 +1,10 @@
-/**
+﻿/**
  * @file TextSplitter.h
  * @brief テキストチャンク分割ユーティリティ
  */
 #pragma once
 #include <string>
+#include <string_view>
 #include <vector>
 
 

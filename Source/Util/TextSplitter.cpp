@@ -1,9 +1,10 @@
-/**
+﻿/**
  * @file TextSplitter.cpp
  * @brief テキストチャンク分割ユーティリティ実装
  */
 #include "stdafx.h"
 #include "TextSplitter.h"
+#include <string_view>
 
 
 namespace app
@@ -46,8 +47,8 @@ namespace app
 				// 句点: E3 80 82
 				// 感嘆符: EF BC 81
 				// 疑問符: EF BC 9F
-				constexpr std::string_view kKuten    = "\xE3\x80\x82";
-				constexpr std::string_view kExclaim  = "\xEF\xBC\x81";
+				constexpr std::string_view kKuten = "\xE3\x80\x82";
+				constexpr std::string_view kExclaim = "\xEF\xBC\x81";
 				constexpr std::string_view kQuestion = "\xEF\xBC\x9F";
 
 				current += seq;
@@ -92,10 +93,24 @@ namespace app
 			}
 		}
 
-		// デリミタが一切なく結果が空の場合は元のテキストを1件として返す
+		// デリミタが一切なく結果が空の場合は元のテキストを1件として返す。
+		// ただし元のテキスト自体が空白のみの場合は空配列を返す。
 		if (result.empty() && !text.empty())
 		{
-			result.push_back(text);
+			bool isTextBlank = true;
+			for (const char c : text)
+			{
+				if (c != ' ' && c != '\t' && c != '\n' && c != '\r')
+				{
+					isTextBlank = false;
+					break;
+				}
+			}
+
+			if (!isTextBlank)
+			{
+				result.push_back(text);
+			}
 		}
 
 		return result;

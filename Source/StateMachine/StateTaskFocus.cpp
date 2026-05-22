@@ -4,8 +4,11 @@
  */
 #include "stdafx.h"
 #include "StateTaskFocus.h"
+#include <mutex>
+#include <string_view>
 #include "Source/Audio/IAudioPipeline.h"
 #include "Source/LLM/ILLMClient.h"
+#include "Source/Monitor/SystemContext.h"
 #include "Source/Util/TextSplitter.h"
 
 
@@ -183,15 +186,61 @@ namespace app
 		std::string prompt = m_systemPrompt + "\n\n";
 
 		// ---------------------------------------------------------------
-		// セクション2: 警告リスト
+		// セクション2: 現在の環境情報
+		// m_isAtHome の値に基づき、LLM が口調・距離感を切り替えるための
+		// コンテキスト情報を注入する。このフラグが profile.md の振る舞い定義と連動する。
 		// ---------------------------------------------------------------
-		if (!warnings.empty())
+		prompt += "=== CURRENT ENVIRONMENT ===\n";
+
+		if (m_context.m_isAtHome)
 		{
-			prompt += "=== CURRENT WARNINGS ===\n";
-			for (const auto& warning : warnings)
+			prompt += "場所: 自宅 (At Home) - プライベート空間\n";
+			prompt += "=> profile.md の「■ 場所が自宅の場合」の指示に従って応答してください。\n";
+		}
+		else
+		{
+			prompt += "場所: 外出先 (Outside) - 他者の目あり\n";
+			prompt += "=> profile.md の「■ 場所が外出先の場合」の指示に従って応答してください。\n";
+		}
+
+		prompt += "\n";
+
+		// ---------------------------------------------------------------
+		// セクション3: 規約違反・ドキュメント変更の警告リスト
+		// ---------------------------------------------------------------
+		prompt += "=== LEVEL 1 WARNINGS ("
+			+ std::to_string(warnings.size())
+			+ " 件) ===\n";
+
+		for (const auto& warning : warnings)
+		{
+			prompt += "- " + warning + "\n";
+		}
+
+		prompt += "\n";
+
+		// ---------------------------------------------------------------
+		// セクション4: Notion 未完了タスクリスト
+		// ---------------------------------------------------------------
+		std::vector<NotionTask> pendingTasks;
+		{
+			std::lock_guard<std::mutex> lock(m_context.m_taskMutex);
+			pendingTasks = m_context.m_pendingTasks;
+		}
+
+		prompt += "=== PENDING TASKS ("
+			+ std::to_string(pendingTasks.size())
+			+ " 件) ===\n";
+
+		for (const auto& task : pendingTasks)
+		{
+			prompt += "- [" + task.m_status + "] " + task.m_title;
+
+			if (!task.m_dueDate.empty())
 			{
-				prompt += "- " + warning + "\n";
+				prompt += " (期限: " + task.m_dueDate + ")";
 			}
+
 			prompt += "\n";
 		}
 

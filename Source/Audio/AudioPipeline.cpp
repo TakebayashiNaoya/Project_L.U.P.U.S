@@ -4,6 +4,10 @@
  */
 #include "stdafx.h"
 #include "Source/Audio/AudioPipeline.h"
+#include <cctype>
+#include <windows.h>
+#include <mmsystem.h>
+#include <winhttp.h>
 
 #pragma comment(lib, "winhttp.lib")
 #pragma comment(lib, "winmm.lib")
